@@ -112,23 +112,110 @@ public class SubscriptionConverter {
             proxy.put("alterId", Integer.parseInt(vmess.getOrDefault("aid", "0").toString()));
             proxy.put("cipher", vmess.getOrDefault("scy", "auto"));
 
+            // Parse transport protocol
             String network = vmess.getOrDefault("net", "tcp").toString();
             proxy.put("network", network);
 
-            if ("ws".equals(network)) {
-                Map<String, Object> wsOpts = new LinkedHashMap<>();
-                wsOpts.put("path", vmess.getOrDefault("path", "/"));
-                Map<String, String> headers = new LinkedHashMap<>();
-                headers.put("Host", vmess.getOrDefault("host", "").toString());
-                wsOpts.put("headers", headers);
-                proxy.put("ws-opts", wsOpts);
+            switch (network) {
+                case "ws":
+                    // WebSocket
+                    Map<String, Object> wsOpts = new LinkedHashMap<>();
+                    String wsPath = vmess.getOrDefault("path", "/").toString();
+                    wsOpts.put("path", wsPath);
+                    if (vmess.containsKey("host") && !vmess.get("host").toString().isEmpty()) {
+                        Map<String, String> wsHeaders = new LinkedHashMap<>();
+                        wsHeaders.put("Host", vmess.get("host").toString());
+                        wsOpts.put("headers", wsHeaders);
+                    }
+                    proxy.put("ws-opts", wsOpts);
+                    break;
+
+                case "grpc":
+                    // gRPC
+                    Map<String, Object> grpcOpts = new LinkedHashMap<>();
+                    String serviceName = vmess.getOrDefault("path", "").toString();
+                    if (serviceName.isEmpty()) {
+                        serviceName = vmess.getOrDefault("serviceName", "GunService").toString();
+                    }
+                    grpcOpts.put("grpc-service-name", serviceName);
+                    proxy.put("grpc-opts", grpcOpts);
+                    break;
+
+                case "http":
+                case "h2":
+                    // HTTP/2
+                    Map<String, Object> h2Opts = new LinkedHashMap<>();
+                    String h2Path = vmess.getOrDefault("path", "/").toString();
+                    if (!h2Path.isEmpty()) {
+                        h2Opts.put("path", h2Path);
+                    }
+                    if (vmess.containsKey("host") && !vmess.get("host").toString().isEmpty()) {
+                        String[] hosts = vmess.get("host").toString().split(",");
+                        h2Opts.put("host", Arrays.asList(hosts));
+                    }
+                    proxy.put("h2-opts", h2Opts);
+                    break;
+
+                case "tcp":
+                    // TCP with HTTP obfuscation
+                    String headerType = vmess.getOrDefault("type", "none").toString();
+                    if (!"none".equals(headerType)) {
+                        Map<String, Object> httpOpts = new LinkedHashMap<>();
+                        if (vmess.containsKey("host") && !vmess.get("host").toString().isEmpty()) {
+                            String[] hosts = vmess.get("host").toString().split(",");
+                            httpOpts.put("host", Arrays.asList(hosts));
+                        }
+                        if (vmess.containsKey("path") && !vmess.get("path").toString().isEmpty()) {
+                            String[] paths = vmess.get("path").toString().split(",");
+                            httpOpts.put("path", Arrays.asList(paths));
+                        }
+                        Map<String, Object> httpObfs = new LinkedHashMap<>();
+                        httpObfs.put("method", "GET");
+                        httpObfs.put("path", httpOpts.getOrDefault("path", Arrays.asList("/")));
+                        Map<String, Object> headers = new LinkedHashMap<>();
+                        headers.put("Host", httpOpts.getOrDefault("host", Arrays.asList("")));
+                        httpObfs.put("headers", headers);
+
+                        Map<String, Object> httpOptsWrapper = new LinkedHashMap<>();
+                        httpOptsWrapper.put("method", "GET");
+                        httpOptsWrapper.put("path", httpOpts.getOrDefault("path", Arrays.asList("/")));
+                        httpOptsWrapper.put("headers", headers);
+
+                        proxy.put("http-opts", httpOptsWrapper);
+                    }
+                    break;
+
+                case "quic":
+                    // QUIC
+                    Map<String, Object> quicOpts = new LinkedHashMap<>();
+                    if (vmess.containsKey("host") && !vmess.get("host").toString().isEmpty()) {
+                        quicOpts.put("host", vmess.get("host").toString());
+                    }
+                    if (vmess.containsKey("path") && !vmess.get("path").toString().isEmpty()) {
+                        quicOpts.put("key", vmess.get("path").toString());
+                    }
+                    proxy.put("quic-opts", quicOpts);
+                    break;
+
+                default:
+                    // tcp or unknown, no additional options needed
+                    break;
             }
 
+            // Parse TLS settings
             String tls = vmess.getOrDefault("tls", "").toString();
             if ("tls".equals(tls)) {
                 proxy.put("tls", true);
-                if (vmess.containsKey("sni")) {
-                    proxy.put("servername", vmess.get("sni"));
+                String sni = vmess.getOrDefault("sni", "").toString();
+                if (sni.isEmpty() && vmess.containsKey("host")) {
+                    sni = vmess.get("host").toString();
+                }
+                if (!sni.isEmpty()) {
+                    proxy.put("servername", sni);
+                }
+                // Skip certificate verification (common in proxy configs)
+                if (vmess.containsKey("skip-cert-verify")) {
+                    proxy.put("skip-cert-verify", Boolean.parseBoolean(vmess.get("skip-cert-verify").toString()));
                 }
             }
 
