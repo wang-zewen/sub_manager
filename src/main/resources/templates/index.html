@@ -14,6 +14,11 @@
             <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-link"></i> Subscription Manager
             </span>
+            <form th:action="@{/logout}" method="post" class="d-flex">
+                <button type="submit" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </form>
         </div>
     </nav>
 

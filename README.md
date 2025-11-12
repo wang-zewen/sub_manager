@@ -8,13 +8,15 @@ A web-based subscription link management tool built with Spring Boot. Easily man
 
 ## Features
 
-- **Web UI Management**: Clean and responsive interface for managing subscriptions
-- **CRUD Operations**: Create, Read, Update, and Delete subscription links
-- **Status Management**: Toggle active/inactive status for subscriptions
-- **REST API**: Full RESTful API for programmatic access
-- **One-Click Copy**: Quick copy-to-clipboard functionality for URLs
-- **Persistent Storage**: H2 database for reliable data storage
-- **Multiple Deployment Options**: Docker, Docker Compose, or standalone JAR
+- **🔐 Secure Authentication**: Login required with customizable username/password
+- **🎨 Web UI Management**: Clean and responsive interface for managing subscriptions
+- **✏️ CRUD Operations**: Create, Read, Update, and Delete subscription links
+- **🔄 Status Management**: Toggle active/inactive status for subscriptions
+- **🚀 REST API**: Full RESTful API for programmatic access
+- **📋 One-Click Copy**: Quick copy-to-clipboard functionality for URLs
+- **💾 Persistent Storage**: H2 database for reliable data storage
+- **⚙️ Flexible Configuration**: Customizable port and authentication settings
+- **🐳 Multiple Deployment Options**: Docker, Docker Compose, or standalone JAR
 
 ## Download
 
@@ -66,10 +68,16 @@ cd subscription-manager
 ./deploy.sh
 ```
 
-The script will guide you through the deployment process with options for:
-- Docker Compose (recommended)
-- Docker
-- JAR (requires Java 17+)
+The script will guide you through:
+- **Deployment method**: Docker Compose, Docker, or JAR
+- **Port configuration**: Default (8080) or custom port
+- **Login credentials**: Default (admin/admin123) or custom
+
+**Default Login:**
+- Username: `admin`
+- Password: `admin123`
+
+⚠️ **Important**: Change the default password in production!
 
 ### Option 2: Docker Compose
 
@@ -112,10 +120,20 @@ java -jar target/subscription-manager-1.0.0.jar
 
 ## Usage
 
-### Web Interface
+### Login
 
 1. Open your browser and navigate to `http://localhost:8080`
-2. Add a new subscription by filling in the form:
+2. You will be redirected to the login page
+3. Enter credentials:
+   - **Username**: `admin` (or your custom username)
+   - **Password**: `admin123` (or your custom password)
+4. Click "Sign In"
+
+### Web Interface
+
+After logging in, you can manage your subscriptions:
+
+1. Add a new subscription by filling in the form:
    - **Name**: A friendly name for your subscription
    - **URL**: The subscription link
    - **Description**: (Optional) Additional notes
@@ -163,11 +181,17 @@ curl http://localhost:8080/api/subscriptions/active
 
 ## Configuration
 
+### Application Configuration
+
 Edit `src/main/resources/application.properties` to customize:
 
 ```properties
 # Server port
 server.port=8080
+
+# Security - Login credentials
+app.security.username=admin
+app.security.password=admin123
 
 # Database location
 spring.datasource.url=jdbc:h2:file:./data/subscriptions
@@ -175,6 +199,36 @@ spring.datasource.url=jdbc:h2:file:./data/subscriptions
 # Enable/disable H2 console
 spring.h2.console.enabled=true
 spring.h2.console.path=/h2-console
+```
+
+### Environment Variables
+
+You can also configure via environment variables (recommended for production):
+
+```bash
+# Change port
+export SERVER_PORT=9090
+
+# Change login credentials
+export APP_SECURITY_USERNAME=myuser
+export APP_SECURITY_PASSWORD=mypassword
+
+# Run the application
+java -jar subscription-manager-1.0.0.jar
+```
+
+### Docker Environment Variables
+
+For Docker deployments, use `-e` flag:
+
+```bash
+docker run -d \
+  -p 9090:8080 \
+  -e SERVER_PORT=8080 \
+  -e APP_SECURITY_USERNAME=myuser \
+  -e APP_SECURITY_PASSWORD=mypassword \
+  -v $(pwd)/data:/app/data \
+  subscription-manager
 ```
 
 ## Project Structure
