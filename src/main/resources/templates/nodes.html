@@ -68,8 +68,8 @@
                         <i class="fas fa-shield-alt text-success"></i> Clash (YAML)
                     </label>
                     <div class="input-group">
-                        <input type="text" class="form-control" th:value="${subscriptionUrl + '?target=clash'}" readonly>
-                        <button class="btn btn-outline-success copy-btn" type="button" th:data-url="${subscriptionUrl + '?target=clash'}">
+                        <input type="text" class="form-control" th:value="|${subscriptionUrl}?target=clash|" readonly>
+                        <button class="btn btn-outline-success copy-btn" type="button" th:data-url="|${subscriptionUrl}?target=clash|">
                             <i class="fas fa-copy"></i> Copy
                         </button>
                     </div>
@@ -82,8 +82,8 @@
                         <i class="fas fa-code text-secondary"></i> Raw (Unencoded)
                     </label>
                     <div class="input-group">
-                        <input type="text" class="form-control" th:value="${subscriptionUrl + '?target=raw'}" readonly>
-                        <button class="btn btn-outline-secondary copy-btn" type="button" th:data-url="${subscriptionUrl + '?target=raw'}">
+                        <input type="text" class="form-control" th:value="|${subscriptionUrl}?target=raw|" readonly>
+                        <button class="btn btn-outline-secondary copy-btn" type="button" th:data-url="|${subscriptionUrl}?target=raw|">
                             <i class="fas fa-copy"></i> Copy
                         </button>
                     </div>
@@ -299,7 +299,7 @@
                                 </td>
                                 <td>
                                     <small>
-                                        <span th:if="${node.server}" th:text="${node.server + ':' + node.port}"></span>
+                                        <span th:if="${node.server}" th:text="|${node.server}:${node.port}|"></span>
                                         <span th:unless="${node.server}" class="text-muted">Not parsed</span>
                                     </small>
                                 </td>
@@ -315,7 +315,7 @@
                                     <div class="btn-group btn-group-sm">
                                         <button class="btn btn-outline-info" type="button"
                                                 data-bs-toggle="collapse"
-                                                th:attr="data-bs-target='#nodeDetails' + ${node.id}"
+                                                th:attr="data-bs-target=|#nodeDetails${node.id}|"
                                                 title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -332,7 +332,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr th:each="node, iter : ${nodes}" class="collapse" th:id="'nodeDetails' + ${node.id}">
+                            <tr th:each="node, iter : ${nodes}" class="collapse" th:id="|nodeDetails${node.id}|">
                                 <td colspan="7">
                                     <div class="card">
                                         <div class="card-body">
@@ -341,7 +341,7 @@
                                                 <div class="col-md-4">
                                                     <strong>Server:</strong> <span th:text="${node.server ?: '-'}"></span><br>
                                                     <strong>Port:</strong> <span th:text="${node.port ?: '-'}"></span><br>
-                                                    <strong>UUID:</strong> <code th:text="${node.uuid ? (node.uuid.length() > 20 ? node.uuid.substring(0, 20) + '...' : node.uuid) : '-'}"></code><br>
+                                                    <strong>UUID:</strong> <code th:text="${node.uuid != null ? (node.uuid.length() > 20 ? #strings.concat(node.uuid.substring(0, 20), '...') : node.uuid) : '-'}"></code><br>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <strong>Network:</strong> <span th:text="${node.network ?: '-'}"></span><br>
