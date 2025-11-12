@@ -1,0 +1,69 @@
+body {
+    background-color: #f8f9fa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0 10px rgba(0,0,0,.1);
+    border-radius: 8px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 2px solid #f0f0f0;
+    font-weight: 600;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.url-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.url-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.copy-btn {
+    padding: 2px 8px;
+    font-size: 0.8em;
+}
+
+.copy-btn.copied {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+footer {
+    border-top: 1px solid #dee2e6;
+}
+
+@media (max-width: 768px) {
+    .url-text {
+        max-width: 150px;
+    }
+
+    .table {
+        font-size: 0.9em;
+    }
+}
