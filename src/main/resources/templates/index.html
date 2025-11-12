@@ -14,11 +14,16 @@
             <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-link"></i> Subscription Manager
             </span>
-            <form th:action="@{/logout}" method="post" class="d-flex">
-                <button type="submit" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </form>
+            <div>
+                <a href="/groups" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-layer-group"></i> Subscription Groups
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </form>
+            </div>
         </div>
     </nav>
 

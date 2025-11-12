@@ -1,51 +1,116 @@
 package com.submanager.subscriptionmanager.service;
 
-import com.submanager.subscriptionmanager.model.Subscription;
-import com.submanager.subscriptionmanager.repository.SubscriptionRepository;
+import com.submanager.subscriptionmanager.model.ProxyNode;
+import com.submanager.subscriptionmanager.model.SubscriptionGroup;
+import com.submanager.subscriptionmanager.repository.ProxyNodeRepository;
+import com.submanager.subscriptionmanager.repository.SubscriptionGroupRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class SubscriptionService {
 
     @Autowired
-    private SubscriptionRepository repository;
+    private SubscriptionGroupRepository groupRepository;
 
-    public List<Subscription> getAllSubscriptions() {
-        return repository.findAllByOrderByCreatedAtDesc();
+    @Autowired
+    private ProxyNodeRepository nodeRepository;
+
+    // Subscription Group methods
+    public List<SubscriptionGroup> getAllGroups() {
+        return groupRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    public List<Subscription> getActiveSubscriptions() {
-        return repository.findByIsActiveOrderByCreatedAtDesc(true);
+    public Optional<SubscriptionGroup> getGroupById(Long id) {
+        return groupRepository.findById(id);
     }
 
-    public Optional<Subscription> getSubscriptionById(Long id) {
-        return repository.findById(id);
+    public Optional<SubscriptionGroup> getGroupByToken(String token) {
+        return groupRepository.findByToken(token);
     }
 
-    public Subscription createSubscription(Subscription subscription) {
-        return repository.save(subscription);
+    public SubscriptionGroup createGroup(SubscriptionGroup group) {
+        return groupRepository.save(group);
     }
 
-    public Subscription updateSubscription(Long id, Subscription subscription) {
-        subscription.setId(id);
-        return repository.save(subscription);
+    public SubscriptionGroup updateGroup(Long id, SubscriptionGroup group) {
+        group.setId(id);
+        return groupRepository.save(group);
     }
 
-    public void deleteSubscription(Long id) {
-        repository.deleteById(id);
+    public void deleteGroup(Long id) {
+        groupRepository.deleteById(id);
     }
 
-    public void toggleActiveStatus(Long id) {
-        Optional<Subscription> optSub = repository.findById(id);
-        optSub.ifPresent(sub -> {
-            sub.setIsActive(!sub.getIsActive());
-            repository.save(sub);
-        });
+    // ProxyNode methods
+    public List<ProxyNode> getNodesByGroupId(Long groupId) {
+        return nodeRepository.findBySubscriptionGroupIdOrderByOrderAsc(groupId);
+    }
+
+    public List<ProxyNode> getActiveNodesByGroupId(Long groupId) {
+        return nodeRepository.findBySubscriptionGroupIdAndIsActiveTrueOrderByOrderAsc(groupId);
+    }
+
+    public Optional<ProxyNode> getNodeById(Long id) {
+        return nodeRepository.findById(id);
+    }
+
+    public ProxyNode createNode(ProxyNode node) {
+        return nodeRepository.save(node);
+    }
+
+    public ProxyNode updateNode(Long id, ProxyNode node) {
+        node.setId(id);
+        return nodeRepository.save(node);
+    }
+
+    public void deleteNode(Long id) {
+        nodeRepository.deleteById(id);
+    }
+
+    // Subscription content generation
+    public String generateSubscriptionContent(String token) {
+        Optional<SubscriptionGroup> groupOpt = groupRepository.findByToken(token);
+
+        if (groupOpt.isEmpty() || !groupOpt.get().getIsActive()) {
+            return "";
+        }
+
+        SubscriptionGroup group = groupOpt.get();
+        List<ProxyNode> activeNodes = nodeRepository.findBySubscriptionGroupIdAndIsActiveTrueOrderByOrderAsc(group.getId());
+
+        if (activeNodes.isEmpty()) {
+            return "";
+        }
+
+        // Collect all node configs (vmess://, vless://, etc.)
+        String content = activeNodes.stream()
+                .map(ProxyNode::getConfig)
+                .collect(Collectors.joining("\n"));
+
+        // Encode to base64
+        return Base64.getEncoder().encodeToString(content.getBytes());
+    }
+
+    public String generateRawSubscriptionContent(String token) {
+        Optional<SubscriptionGroup> groupOpt = groupRepository.findByToken(token);
+
+        if (groupOpt.isEmpty() || !groupOpt.get().getIsActive()) {
+            return "";
+        }
+
+        SubscriptionGroup group = groupOpt.get();
+        List<ProxyNode> activeNodes = nodeRepository.findBySubscriptionGroupIdAndIsActiveTrueOrderByOrderAsc(group.getId());
+
+        return activeNodes.stream()
+                .map(ProxyNode::getConfig)
+                .collect(Collectors.joining("\n"));
     }
 }

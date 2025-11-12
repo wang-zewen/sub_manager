@@ -27,7 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**").permitAll()  // Allow static resources
+                .requestMatchers("/css/**", "/js/**", "/sub/**").permitAll()  // Allow static resources and public subscription API
                 .anyRequest().authenticated()  // All other requests require authentication
             )
             .formLogin(form -> form
