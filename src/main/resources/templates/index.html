@@ -15,9 +15,6 @@
                 <i class="fas fa-link"></i> Subscription Manager
             </span>
             <div>
-                <a href="/groups" class="btn btn-outline-light btn-sm me-2">
-                    <i class="fas fa-layer-group"></i> Subscription Groups
-                </a>
                 <form th:action="@{/logout}" method="post" class="d-inline">
                     <button type="submit" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-sign-out-alt"></i> Logout
@@ -27,166 +24,88 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <!-- Alert Messages -->
-        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-
-        <!-- Add/Edit Form -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <span th:if="${editMode}">
-                        <i class="fas fa-edit"></i> Edit Subscription
-                    </span>
-                    <span th:unless="${editMode}">
-                        <i class="fas fa-plus"></i> Add New Subscription
-                    </span>
-                </h5>
-            </div>
-            <div class="card-body">
-                <form th:action="${editMode} ? @{/subscriptions/{id}(id=${subscription.id})} : @{/subscriptions}"
-                      method="post" th:object="${subscription}">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name *</label>
-                        <input type="text" class="form-control" id="name" th:field="*{name}"
-                               placeholder="e.g., My VPN Subscription" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="url" class="form-label">Subscription URL *</label>
-                        <input type="text" class="form-control" id="url" th:field="*{url}"
-                               placeholder="https://example.com/subscription/link" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" th:field="*{description}"
-                                  rows="3" placeholder="Optional description..."></textarea>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="isActive" th:field="*{isActive}">
-                        <label class="form-check-label" for="isActive">Active</label>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i th:class="${editMode} ? 'fas fa-save' : 'fas fa-plus'"></i>
-                            <span th:text="${editMode} ? 'Update' : 'Add'"></span>
-                        </button>
-                        <a th:if="${editMode}" href="/" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Subscriptions List -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-list"></i> Subscriptions</h5>
-                <span class="badge bg-primary" th:text="${subscriptions.size()} + ' total'"></span>
-            </div>
-            <div class="card-body">
-                <div th:if="${subscriptions.empty}" class="text-center text-muted py-5">
-                    <i class="fas fa-inbox fa-3x mb-3"></i>
-                    <p>No subscriptions yet. Add your first subscription above!</p>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="text-center mb-5">
+                    <i class="fas fa-server fa-5x text-primary mb-4"></i>
+                    <h1 class="display-4">Welcome to Subscription Manager</h1>
+                    <p class="lead text-muted">Manage your proxy nodes and generate subscription links</p>
                 </div>
 
-                <div th:unless="${subscriptions.empty}" class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Status</th>
-                                <th>Name</th>
-                                <th>URL</th>
-                                <th>Description</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="sub : ${subscriptions}">
-                                <td>
-                                    <span th:if="${sub.isActive}" class="badge bg-success">Active</span>
-                                    <span th:unless="${sub.isActive}" class="badge bg-secondary">Inactive</span>
-                                </td>
-                                <td>
-                                    <strong th:text="${sub.name}"></strong>
-                                </td>
-                                <td>
-                                    <div class="url-container">
-                                        <span class="url-text" th:text="${sub.url}"></span>
-                                        <button class="btn btn-sm btn-outline-secondary copy-btn"
-                                                th:data-url="${sub.url}" title="Copy URL">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span th:text="${sub.description ?: '-'}"></span>
-                                </td>
-                                <td>
-                                    <small th:text="${#temporals.format(sub.createdAt, 'yyyy-MM-dd HH:mm')}"></small>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a th:href="@{/subscriptions/{id}/edit(id=${sub.id})}"
-                                           class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form th:action="@{/subscriptions/{id}/toggle(id=${sub.id})}"
-                                              method="post" style="display: inline;">
-                                            <button type="submit" class="btn btn-outline-warning"
-                                                    th:title="${sub.isActive} ? 'Deactivate' : 'Activate'">
-                                                <i th:class="${sub.isActive} ? 'fas fa-toggle-on' : 'fas fa-toggle-off'"></i>
-                                            </button>
-                                        </form>
-                                        <form th:action="@{/subscriptions/{id}/delete(id=${sub.id})}"
-                                              method="post" style="display: inline;"
-                                              onsubmit="return confirm('Are you sure you want to delete this subscription?');">
-                                            <button type="submit" class="btn btn-outline-danger" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card h-100 border-primary">
+                            <div class="card-body text-center p-4">
+                                <i class="fas fa-layer-group fa-3x text-primary mb-3"></i>
+                                <h4 class="card-title">Subscription Groups</h4>
+                                <p class="card-text text-muted">
+                                    Create subscription groups and add your proxy nodes (VMess, VLESS, Trojan, etc.)
+                                </p>
+                                <a href="/groups" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-arrow-right"></i> Manage Groups
+                                </a>
+                            </div>
+                        </div>
+                    </div>
 
-        <!-- API Info -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-code"></i> API Endpoints</h6>
-            </div>
-            <div class="card-body">
-                <p class="mb-2"><strong>REST API Base URL:</strong> <code>/api/subscriptions</code></p>
-                <ul class="list-unstyled mb-0">
-                    <li><code>GET /api/subscriptions</code> - Get all subscriptions</li>
-                    <li><code>GET /api/subscriptions/active</code> - Get active subscriptions</li>
-                    <li><code>GET /api/subscriptions/{id}</code> - Get subscription by ID</li>
-                    <li><code>POST /api/subscriptions</code> - Create new subscription</li>
-                    <li><code>PUT /api/subscriptions/{id}</code> - Update subscription</li>
-                    <li><code>DELETE /api/subscriptions/{id}</code> - Delete subscription</li>
-                    <li><code>PATCH /api/subscriptions/{id}/toggle</code> - Toggle active status</li>
-                </ul>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-info">
+                            <div class="card-body text-center p-4">
+                                <i class="fas fa-link fa-3x text-info mb-3"></i>
+                                <h4 class="card-title">How It Works</h4>
+                                <div class="text-start">
+                                    <ol class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check text-success"></i> Create a subscription group</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success"></i> Add your proxy nodes</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success"></i> Get subscription URL</li>
+                                        <li class="mb-2"><i class="fas fa-check text-success"></i> Use in V2Ray/Clash clients</li>
+                                    </ol>
+                                </div>
+                                <a href="/groups" class="btn btn-info btn-lg w-100">
+                                    <i class="fas fa-plus"></i> Get Started
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Features</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success"></i> Multi-protocol support</li>
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success"></i> Group-based management</li>
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success"></i> Base64 encoded output</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success"></i> Public subscription API</li>
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success"></i> Secure access tokens</li>
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success"></i> Easy to use interface</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4" role="alert">
+                    <i class="fas fa-lightbulb"></i> <strong>Tip:</strong>
+                    Each subscription group gets a unique URL like <code>http://your-server/sub/{token}</code> that you can use in your V2Ray, Clash, or other proxy clients.
+                </div>
             </div>
         </div>
     </div>
 
     <footer class="text-center text-muted py-4 mt-5">
-        <small>Subscription Manager v1.0.0 | Built with Spring Boot</small>
+        <small>Subscription Manager v2.0.0 | Built with Spring Boot</small>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script th:src="@{/js/main.js}"></script>
 </body>
 </html>
