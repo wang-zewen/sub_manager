@@ -1,5 +1,6 @@
 package com.submanager.subscriptionmanager.service;
 
+import com.submanager.subscriptionmanager.model.ProxyNode;
 import org.springframework.stereotype.Service;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -14,18 +15,18 @@ public class SubscriptionConverter {
     /**
      * Convert node configs to Clash YAML format
      */
-    public String toClashYaml(List<String> nodeConfigs) {
+    public String toClashYaml(List<ProxyNode> nodes) {
         List<Map<String, Object>> proxies = new ArrayList<>();
 
-        for (String config : nodeConfigs) {
+        for (ProxyNode node : nodes) {
             try {
-                Map<String, Object> proxy = parseNodeToClashProxy(config);
+                Map<String, Object> proxy = parseNodeToClashProxy(node.getConfig(), node.getName());
                 if (proxy != null) {
                     proxies.add(proxy);
                 }
             } catch (Exception e) {
                 // Skip invalid nodes
-                System.err.println("Failed to parse node: " + config);
+                System.err.println("Failed to parse node: " + node.getConfig());
             }
         }
 
@@ -79,20 +80,20 @@ public class SubscriptionConverter {
     /**
      * Parse node config URL to Clash proxy format
      */
-    private Map<String, Object> parseNodeToClashProxy(String nodeConfig) {
+    private Map<String, Object> parseNodeToClashProxy(String nodeConfig, String nodeName) {
         if (nodeConfig.startsWith("vmess://")) {
-            return parseVMessToClash(nodeConfig);
+            return parseVMessToClash(nodeConfig, nodeName);
         } else if (nodeConfig.startsWith("vless://")) {
-            return parseVLESSToClash(nodeConfig);
+            return parseVLESSToClash(nodeConfig, nodeName);
         } else if (nodeConfig.startsWith("trojan://")) {
-            return parseTrojanToClash(nodeConfig);
+            return parseTrojanToClash(nodeConfig, nodeName);
         } else if (nodeConfig.startsWith("ss://")) {
-            return parseShadowsocksToClash(nodeConfig);
+            return parseShadowsocksToClash(nodeConfig, nodeName);
         }
         return null;
     }
 
-    private Map<String, Object> parseVMessToClash(String vmessUrl) {
+    private Map<String, Object> parseVMessToClash(String vmessUrl, String nodeName) {
         try {
             // Decode vmess:// URL
             String encoded = vmessUrl.substring(8); // Remove "vmess://"
@@ -102,7 +103,8 @@ public class SubscriptionConverter {
             Map<String, Object> vmess = parseJson(decoded);
 
             Map<String, Object> proxy = new LinkedHashMap<>();
-            proxy.put("name", vmess.getOrDefault("ps", "VMess Node"));
+            // Use the database node name instead of the name from vmess URL
+            proxy.put("name", nodeName != null && !nodeName.isEmpty() ? nodeName : vmess.getOrDefault("ps", "VMess Node"));
             proxy.put("type", "vmess");
             proxy.put("server", vmess.get("add"));
             proxy.put("port", Integer.parseInt(vmess.get("port").toString()));
@@ -137,28 +139,28 @@ public class SubscriptionConverter {
         }
     }
 
-    private Map<String, Object> parseVLESSToClash(String vlessUrl) {
+    private Map<String, Object> parseVLESSToClash(String vlessUrl, String nodeName) {
         // Simplified VLESS parsing
         Map<String, Object> proxy = new LinkedHashMap<>();
-        proxy.put("name", "VLESS Node");
+        proxy.put("name", nodeName != null && !nodeName.isEmpty() ? nodeName : "VLESS Node");
         proxy.put("type", "vless");
         // TODO: Implement full VLESS parsing
         return proxy;
     }
 
-    private Map<String, Object> parseTrojanToClash(String trojanUrl) {
+    private Map<String, Object> parseTrojanToClash(String trojanUrl, String nodeName) {
         // Simplified Trojan parsing
         Map<String, Object> proxy = new LinkedHashMap<>();
-        proxy.put("name", "Trojan Node");
+        proxy.put("name", nodeName != null && !nodeName.isEmpty() ? nodeName : "Trojan Node");
         proxy.put("type", "trojan");
         // TODO: Implement full Trojan parsing
         return proxy;
     }
 
-    private Map<String, Object> parseShadowsocksToClash(String ssUrl) {
+    private Map<String, Object> parseShadowsocksToClash(String ssUrl, String nodeName) {
         // Simplified SS parsing
         Map<String, Object> proxy = new LinkedHashMap<>();
-        proxy.put("name", "Shadowsocks Node");
+        proxy.put("name", nodeName != null && !nodeName.isEmpty() ? nodeName : "Shadowsocks Node");
         proxy.put("type", "ss");
         // TODO: Implement full SS parsing
         return proxy;

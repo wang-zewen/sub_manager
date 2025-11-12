@@ -131,11 +131,8 @@ public class SubscriptionService {
             return "";
         }
 
-        List<String> nodeConfigs = activeNodes.stream()
-                .map(ProxyNode::getConfig)
-                .collect(Collectors.toList());
-
-        return converter.toClashYaml(nodeConfigs);
+        // Pass the entire ProxyNode objects so the converter can use the database name field
+        return converter.toClashYaml(activeNodes);
     }
 
     public String generateSubscriptionByTarget(String token, String target) {
