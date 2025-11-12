@@ -23,6 +23,9 @@ public class SubscriptionService {
     @Autowired
     private ProxyNodeRepository nodeRepository;
 
+    @Autowired
+    private SubscriptionConverter converter;
+
     // Subscription Group methods
     public List<SubscriptionGroup> getAllGroups() {
         return groupRepository.findAllByOrderByCreatedAtDesc();
@@ -112,5 +115,39 @@ public class SubscriptionService {
         return activeNodes.stream()
                 .map(ProxyNode::getConfig)
                 .collect(Collectors.joining("\n"));
+    }
+
+    public String generateClashSubscriptionContent(String token) {
+        Optional<SubscriptionGroup> groupOpt = groupRepository.findByToken(token);
+
+        if (groupOpt.isEmpty() || !groupOpt.get().getIsActive()) {
+            return "";
+        }
+
+        SubscriptionGroup group = groupOpt.get();
+        List<ProxyNode> activeNodes = nodeRepository.findBySubscriptionGroupIdAndIsActiveTrueOrderByOrderAsc(group.getId());
+
+        if (activeNodes.isEmpty()) {
+            return "";
+        }
+
+        List<String> nodeConfigs = activeNodes.stream()
+                .map(ProxyNode::getConfig)
+                .collect(Collectors.toList());
+
+        return converter.toClashYaml(nodeConfigs);
+    }
+
+    public String generateSubscriptionByTarget(String token, String target) {
+        if ("clash".equalsIgnoreCase(target)) {
+            return generateClashSubscriptionContent(token);
+        } else if ("v2ray".equalsIgnoreCase(target) || "v2rayng".equalsIgnoreCase(target)) {
+            return generateSubscriptionContent(token);
+        } else if ("raw".equalsIgnoreCase(target)) {
+            return generateRawSubscriptionContent(token);
+        } else {
+            // Default to V2Ray format (base64)
+            return generateSubscriptionContent(token);
+        }
     }
 }

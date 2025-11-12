@@ -38,23 +38,56 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
-        <!-- Subscription URL Info -->
+        <!-- Subscription URLs Info -->
         <div class="card mb-4 border-primary">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-link"></i> Subscription URL</h5>
+                <h5 class="mb-0"><i class="fas fa-link"></i> Subscription URLs</h5>
             </div>
             <div class="card-body">
-                <div class="input-group input-group-lg">
-                    <input type="text" class="form-control" th:value="${subscriptionUrl}" readonly id="subUrl">
-                    <button class="btn btn-outline-primary copy-btn" type="button" th:data-url="${subscriptionUrl}">
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle"></i> Choose the format based on your client. All URLs use the same nodes from this group.
                 </div>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        Use this URL in your V2Ray/Clash client to subscribe to all nodes in this group.
-                        The link returns base64 encoded content.
-                    </small>
+
+                <!-- V2Ray Format -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-rocket text-primary"></i> V2Ray / V2RayNG (Base64)
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" th:value="${subscriptionUrl}" readonly>
+                        <button class="btn btn-outline-primary copy-btn" type="button" th:data-url="${subscriptionUrl}">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <small class="text-muted">For V2Ray, V2RayNG, V2RayN clients</small>
+                </div>
+
+                <!-- Clash Format -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-shield-alt text-success"></i> Clash (YAML)
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" th:value="${subscriptionUrl + '?target=clash'}" readonly>
+                        <button class="btn btn-outline-success copy-btn" type="button" th:data-url="${subscriptionUrl + '?target=clash'}">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <small class="text-muted">For Clash, ClashX, Clash for Android clients</small>
+                </div>
+
+                <!-- Raw Format -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-code text-secondary"></i> Raw (Unencoded)
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" th:value="${subscriptionUrl + '?target=raw'}" readonly>
+                        <button class="btn btn-outline-secondary copy-btn" type="button" th:data-url="${subscriptionUrl + '?target=raw'}">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <small class="text-muted">Plain text node list without encoding</small>
                 </div>
             </div>
         </div>

@@ -17,20 +17,17 @@ public class PublicSubscriptionController {
 
     /**
      * Public subscription endpoint (no authentication required)
-     * Returns base64 encoded subscription content
+     * Supports different client formats via 'target' parameter:
+     * - target=clash: Clash YAML format
+     * - target=v2ray: V2Ray format (base64, default)
+     * - target=raw: Raw node list (no encoding)
      */
     @GetMapping("/{token}")
-    public ResponseEntity<String> getSubscription(@PathVariable String token,
-                                                  @RequestParam(value = "raw", required = false) Boolean raw) {
-        String content;
+    public ResponseEntity<String> getSubscription(
+            @PathVariable String token,
+            @RequestParam(value = "target", required = false, defaultValue = "v2ray") String target) {
 
-        if (Boolean.TRUE.equals(raw)) {
-            // Return raw content (not base64 encoded)
-            content = subscriptionService.generateRawSubscriptionContent(token);
-        } else {
-            // Return base64 encoded content (default)
-            content = subscriptionService.generateSubscriptionContent(token);
-        }
+        String content = subscriptionService.generateSubscriptionByTarget(token, target);
 
         if (content == null || content.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -38,9 +35,18 @@ public class PublicSubscriptionController {
         }
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.TEXT_PLAIN);
-        headers.set("Subscription-Userinfo", "upload=0; download=0; total=1073741824; expire=0");
-        headers.set("Content-Disposition", "attachment; filename=subscription.txt");
+
+        // Set content type based on target
+        if ("clash".equalsIgnoreCase(target)) {
+            headers.setContentType(MediaType.valueOf("application/x-yaml"));
+            headers.set("Content-Disposition", "attachment; filename=clash.yaml");
+            headers.set("profile-update-interval", "24");
+            headers.set("subscription-userinfo", "upload=0; download=0; total=10737418240; expire=0");
+        } else {
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            headers.set("Content-Disposition", "attachment; filename=subscription.txt");
+            headers.set("Subscription-Userinfo", "upload=0; download=0; total=10737418240; expire=0");
+        }
 
         return ResponseEntity.ok()
                 .headers(headers)

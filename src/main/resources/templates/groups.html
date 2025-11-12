@@ -101,12 +101,52 @@
                                 </td>
                                 <td th:text="${group.description} ?: '-'"></td>
                                 <td>
-                                    <div class="url-container">
-                                        <code class="url-text" th:text="${baseUrl + '/sub/' + group.token}"></code>
-                                        <button class="btn btn-sm btn-outline-secondary copy-btn"
-                                                th:data-url="${baseUrl + '/sub/' + group.token}" title="Copy URL">
-                                            <i class="fas fa-copy"></i>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button"
+                                                th:id="'dropdownMenuButton' + ${group.id}"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-link"></i> Subscription Links
                                         </button>
+                                        <ul class="dropdown-menu" th:aria-labelledby="'dropdownMenuButton' + ${group.id}" style="min-width: 400px;">
+                                            <li>
+                                                <h6 class="dropdown-header"><i class="fas fa-rocket text-primary"></i> V2Ray (Base64)</h6>
+                                            </li>
+                                            <li class="px-3 pb-2">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" class="form-control" th:value="${baseUrl + '/sub/' + group.token}" readonly>
+                                                    <button class="btn btn-outline-primary copy-btn"
+                                                            th:data-url="${baseUrl + '/sub/' + group.token}">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <h6 class="dropdown-header"><i class="fas fa-shield-alt text-success"></i> Clash (YAML)</h6>
+                                            </li>
+                                            <li class="px-3 pb-2">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" class="form-control" th:value="${baseUrl + '/sub/' + group.token + '?target=clash'}" readonly>
+                                                    <button class="btn btn-outline-success copy-btn"
+                                                            th:data-url="${baseUrl + '/sub/' + group.token + '?target=clash'}">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <h6 class="dropdown-header"><i class="fas fa-code text-secondary"></i> Raw</h6>
+                                            </li>
+                                            <li class="px-3 pb-2">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" class="form-control" th:value="${baseUrl + '/sub/' + group.token + '?target=raw'}" readonly>
+                                                    <button class="btn btn-outline-secondary copy-btn"
+                                                            th:data-url="${baseUrl + '/sub/' + group.token + '?target=raw'}">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </td>
                                 <td>
