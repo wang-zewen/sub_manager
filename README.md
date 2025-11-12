@@ -1,5 +1,9 @@
 # Subscription Manager
 
+[![Build](https://github.com/wang-zewen/sub_manager/actions/workflows/build.yml/badge.svg)](https://github.com/wang-zewen/sub_manager/actions/workflows/build.yml)
+[![Release](https://github.com/wang-zewen/sub_manager/actions/workflows/release.yml/badge.svg)](https://github.com/wang-zewen/sub_manager/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A web-based subscription link management tool built with Spring Boot. Easily manage, organize, and access your subscription links through a clean and intuitive web interface.
 
 ## Features
@@ -11,6 +15,43 @@ A web-based subscription link management tool built with Spring Boot. Easily man
 - **One-Click Copy**: Quick copy-to-clipboard functionality for URLs
 - **Persistent Storage**: H2 database for reliable data storage
 - **Multiple Deployment Options**: Docker, Docker Compose, or standalone JAR
+
+## Download
+
+### Quick Install Script (Easiest)
+
+One-command install and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wang-zewen/sub_manager/main/install.sh | bash
+```
+
+This script will:
+- Check Java installation (Java 17+ required)
+- Download the latest release automatically
+- Optionally start the application
+
+### Pre-built JAR (Manual Download)
+
+Download the latest pre-built JAR from the [Releases](https://github.com/wang-zewen/sub_manager/releases) page:
+
+1. Go to [Releases](https://github.com/wang-zewen/sub_manager/releases)
+2. Download `subscription-manager-x.x.x.jar` from the latest release
+3. Run directly: `java -jar subscription-manager-x.x.x.jar`
+4. Access at: http://localhost:8080
+
+**Requirements**: Java 17 or higher
+
+### Build from Source
+
+Clone and build the project yourself:
+
+```bash
+git clone https://github.com/wang-zewen/sub_manager.git
+cd sub_manager
+mvn clean package
+java -jar target/subscription-manager-1.0.0.jar
+```
 
 ## Quick Start
 
@@ -190,6 +231,35 @@ mvn clean package
 ```
 
 The JAR file will be created in `target/subscription-manager-1.0.0.jar`
+
+## Creating a Release
+
+To create a new release with auto-generated JAR:
+
+### Method 1: Create Git Tag (Automated)
+
+```bash
+# Create and push a version tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+GitHub Actions will automatically:
+- Build the project
+- Run tests
+- Generate JAR file
+- Create a GitHub Release
+- Upload the JAR as a release asset
+
+### Method 2: Manual Release (GitHub UI)
+
+1. Go to your repository on GitHub
+2. Click "Actions" > "Release" workflow
+3. Click "Run workflow"
+4. Enter the version (e.g., v1.0.0)
+5. Click "Run workflow"
+
+The JAR will be automatically built and attached to the release.
 
 ## Data Persistence
 
