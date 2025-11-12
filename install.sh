@@ -42,8 +42,8 @@ if [ -z "$LATEST_RELEASE" ]; then
     exit 1
 fi
 
-# Extract download URL
-DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | grep "browser_download_url.*\.jar" | cut -d '"' -f 4)
+# Extract download URL (exclude .sha256 files)
+DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | grep "browser_download_url.*\.jar\"" | grep -v "\.sha256" | head -n 1 | cut -d '"' -f 4)
 VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$DOWNLOAD_URL" ]; then
