@@ -33,6 +33,40 @@ public class ProxyNode {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String config; // Store full node URL (vmess://, vless://, etc.)
 
+    // Parsed node information for visualization and editing
+    @Column(length = 255)
+    private String server; // Server address/hostname
+
+    @Column
+    private Integer port; // Server port
+
+    @Column(length = 100)
+    private String uuid; // UUID or password
+
+    @Column(name = "alter_id")
+    private Integer alterId; // VMess alterId
+
+    @Column(length = 50)
+    private String cipher; // Encryption method
+
+    @Column(length = 50)
+    private String network; // Transport protocol: tcp, ws, grpc, h2, quic
+
+    @Column(columnDefinition = "TEXT")
+    private String networkSettings; // Transport settings as JSON
+
+    @Column
+    private Boolean tls; // TLS enabled
+
+    @Column(length = 255)
+    private String sni; // Server Name Indication
+
+    @Column(length = 255)
+    private String host; // Host header for WS/HTTP
+
+    @Column(length = 500)
+    private String path; // Path for WS/HTTP/gRPC
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_group_id", nullable = false)
     private SubscriptionGroup subscriptionGroup;
