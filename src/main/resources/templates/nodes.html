@@ -96,12 +96,12 @@
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i th:classappend="${editMode ? 'fa-edit' : 'fa-plus'}" class="fas"></i>
-                    <span th:text="${editMode ? 'Edit Node' : 'Add New Node'}"></span>
+                    <i th:classappend="${editMode != null and editMode == true ? 'fa-edit' : 'fa-plus'}" class="fas"></i>
+                    <span th:text="${editMode != null and editMode == true ? 'Edit Node' : 'Add New Node'}"></span>
                 </h5>
             </div>
             <div class="card-body">
-                <form th:if="${!editMode}" th:action="@{/groups/{groupId}/nodes(groupId=${group.id})}" method="post" th:object="${node}">
+                <form th:if="${editMode == null or editMode == false}" th:action="@{/groups/{groupId}/nodes(groupId=${group.id})}" method="post" th:object="${node}">
                     <div class="row">
                         <div class="col-md-3 mb-3">
                             <label for="name" class="form-label">Node Name *</label>
@@ -138,7 +138,7 @@
                 </form>
 
                 <!-- Edit Node Form -->
-                <form th:if="${editMode}" th:action="@{/groups/nodes/{id}/update(id=${node.id})}" method="post" th:object="${node}">
+                <form th:if="${editMode != null and editMode == true}" th:action="@{/groups/nodes/{id}/update(id=${node.id})}" method="post" th:object="${node}">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> You can edit the parsed fields below or paste a new node URL to replace everything.
                     </div>
