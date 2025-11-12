@@ -14,6 +14,15 @@ echo "   Subscription Manager - Quick Install        "
 echo "================================================"
 echo ""
 
+# Check if running in interactive mode
+if [ -t 0 ]; then
+    INTERACTIVE=true
+else
+    INTERACTIVE=false
+    echo "NOTE: Running in non-interactive mode (piped from curl)"
+    echo ""
+fi
+
 # Check if Java is installed
 if ! command -v java &> /dev/null; then
     echo "ERROR: Java is not installed!"
@@ -73,53 +82,107 @@ fi
 echo "[OK] Download complete: ${JAR_NAME}"
 echo ""
 
+# Function to check if port is in use
+check_port() {
+    local port=$1
+    if command -v lsof &> /dev/null; then
+        lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1
+    elif command -v netstat &> /dev/null; then
+        netstat -tuln | grep -q ":$port "
+    else
+        # Can't check, assume available
+        return 1
+    fi
+}
+
+# Function to find available port
+find_available_port() {
+    local start_port=$1
+    local port=$start_port
+    while [ $port -lt 65535 ]; do
+        if ! check_port $port; then
+            echo $port
+            return 0
+        fi
+        port=$((port + 1))
+    done
+    return 1
+}
+
 # Port configuration
 echo "================================================"
 echo "  Port Configuration"
 echo "================================================"
 echo ""
-echo "Select port configuration:"
-echo "1) Use default port (8080)"
-echo "2) Specify custom port"
-echo ""
-read -p "Enter your choice [1-2] (default: 1): " port_choice
 
-if [ "$port_choice" = "2" ]; then
-    read -p "Enter port number (e.g., 9090): " CUSTOM_PORT
-    if ! [[ "$CUSTOM_PORT" =~ ^[0-9]+$ ]] || [ "$CUSTOM_PORT" -lt 1024 ] || [ "$CUSTOM_PORT" -gt 65535 ]; then
-        echo "ERROR: Invalid port number. Using default port 8080."
-        APP_PORT=$DEFAULT_PORT
+if [ "$INTERACTIVE" = true ]; then
+    # Interactive mode
+    echo "Select port configuration:"
+    echo "1) Use default port (8080)"
+    echo "2) Specify custom port"
+    echo ""
+    read -p "Enter your choice [1-2] (default: 1): " port_choice
+
+    if [ "$port_choice" = "2" ]; then
+        read -p "Enter port number (e.g., 9090): " CUSTOM_PORT
+        if ! [[ "$CUSTOM_PORT" =~ ^[0-9]+$ ]] || [ "$CUSTOM_PORT" -lt 1024 ] || [ "$CUSTOM_PORT" -gt 65535 ]; then
+            echo "ERROR: Invalid port number. Using default port 8080."
+            APP_PORT=$DEFAULT_PORT
+        else
+            APP_PORT=$CUSTOM_PORT
+        fi
     else
-        APP_PORT=$CUSTOM_PORT
+        APP_PORT=$DEFAULT_PORT
     fi
-else
-    APP_PORT=$DEFAULT_PORT
-fi
 
-echo "[OK] Using port: $APP_PORT"
-echo ""
-
-# Check if port is already in use
-if command -v lsof &> /dev/null; then
-    if lsof -Pi :$APP_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+    # Check if port is in use
+    if check_port $APP_PORT; then
+        echo ""
         echo "WARNING: Port $APP_PORT is already in use!"
-        read -p "Do you want to specify a different port? [Y/n] " -n 1 -r
+        read -p "Try to find an available port automatically? [Y/n] " -n 1 -r
         echo ""
         if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+            AVAILABLE_PORT=$(find_available_port $APP_PORT)
+            if [ $? -eq 0 ]; then
+                APP_PORT=$AVAILABLE_PORT
+                echo "[OK] Found available port: $APP_PORT"
+            else
+                echo "ERROR: Could not find available port. Please stop the service using port $APP_PORT."
+                exit 1
+            fi
+        else
             read -p "Enter a different port number: " NEW_PORT
             if [[ "$NEW_PORT" =~ ^[0-9]+$ ]] && [ "$NEW_PORT" -ge 1024 ] && [ "$NEW_PORT" -le 65535 ]; then
                 APP_PORT=$NEW_PORT
-                echo "[OK] Using port: $APP_PORT"
             else
                 echo "ERROR: Invalid port. Exiting."
                 exit 1
             fi
         fi
     fi
-elif command -v netstat &> /dev/null; then
-    if netstat -tuln | grep -q ":$APP_PORT "; then
-        echo "WARNING: Port $APP_PORT appears to be in use!"
-        echo "You may need to stop the existing service or choose a different port."
+else
+    # Non-interactive mode
+    APP_PORT=$DEFAULT_PORT
+
+    # Auto-detect and use available port
+    if check_port $APP_PORT; then
+        echo "WARNING: Default port $APP_PORT is already in use!"
+        echo "Looking for available port..."
+        AVAILABLE_PORT=$(find_available_port $APP_PORT)
+        if [ $? -eq 0 ]; then
+            APP_PORT=$AVAILABLE_PORT
+            echo "[OK] Using available port: $APP_PORT"
+        else
+            echo "ERROR: Could not find available port."
+            echo ""
+            echo "To use a custom port, download and run the script manually:"
+            echo "  wget https://raw.githubusercontent.com/wang-zewen/sub_manager/claude/subscription-manager-deployment-011CV3iFMBHMeJAasHdpQAMw/install.sh"
+            echo "  chmod +x install.sh"
+            echo "  ./install.sh"
+            exit 1
+        fi
+    else
+        echo "[OK] Using port: $APP_PORT"
     fi
 fi
 
@@ -130,43 +193,59 @@ echo "================================================"
 echo "  Security Configuration"
 echo "================================================"
 echo ""
-echo "Configure login credentials:"
-echo "1) Use default credentials (admin/admin123)"
-echo "2) Set custom credentials"
-echo ""
-read -p "Enter your choice [1-2] (default: 1): " auth_choice
 
-if [ "$auth_choice" = "2" ]; then
-    read -p "Enter username: " CUSTOM_USERNAME
-    read -sp "Enter password: " CUSTOM_PASSWORD
+if [ "$INTERACTIVE" = true ]; then
+    echo "Configure login credentials:"
+    echo "1) Use default credentials (admin/admin123)"
+    echo "2) Set custom credentials"
     echo ""
-    if [ -z "$CUSTOM_USERNAME" ] || [ -z "$CUSTOM_PASSWORD" ]; then
-        echo "ERROR: Username and password cannot be empty. Using defaults."
+    read -p "Enter your choice [1-2] (default: 1): " auth_choice
+
+    if [ "$auth_choice" = "2" ]; then
+        read -p "Enter username: " CUSTOM_USERNAME
+        read -sp "Enter password: " CUSTOM_PASSWORD
+        echo ""
+        if [ -z "$CUSTOM_USERNAME" ] || [ -z "$CUSTOM_PASSWORD" ]; then
+            echo "ERROR: Username and password cannot be empty. Using defaults."
+            APP_USERNAME="admin"
+            APP_PASSWORD="admin123"
+        else
+            APP_USERNAME="$CUSTOM_USERNAME"
+            APP_PASSWORD="$CUSTOM_PASSWORD"
+        fi
+    else
         APP_USERNAME="admin"
         APP_PASSWORD="admin123"
-    else
-        APP_USERNAME="$CUSTOM_USERNAME"
-        APP_PASSWORD="$CUSTOM_PASSWORD"
     fi
 else
+    # Non-interactive mode - use defaults
     APP_USERNAME="admin"
     APP_PASSWORD="admin123"
+    echo "Using default credentials:"
 fi
 
-echo "[OK] Username: $APP_USERNAME"
+echo "Username: $APP_USERNAME"
 echo ""
 
-# Create systemd service file (optional)
+# Deployment options
 echo "================================================"
 echo "  Deployment Options"
 echo "================================================"
 echo ""
-echo "How would you like to run the application?"
-echo "1) Background process with nohup (simple)"
-echo "2) Create systemd service (recommended for servers)"
-echo "3) Foreground (manual control)"
-echo ""
-read -p "Enter your choice [1-3] (default: 1): " deploy_choice
+
+if [ "$INTERACTIVE" = true ]; then
+    echo "How would you like to run the application?"
+    echo "1) Background process with nohup (simple)"
+    echo "2) Create systemd service (recommended for servers)"
+    echo "3) Foreground (manual control)"
+    echo ""
+    read -p "Enter your choice [1-3] (default: 1): " deploy_choice
+else
+    # Non-interactive mode - use background
+    deploy_choice=1
+    echo "Running in background mode (default for piped install)"
+    echo ""
+fi
 
 case $deploy_choice in
     2)
@@ -258,7 +337,7 @@ EOF
         echo $PID > subscription-manager.pid
 
         # Wait a moment and check if process is running
-        sleep 2
+        sleep 3
         if ps -p $PID > /dev/null; then
             echo ""
             echo "================================================"
@@ -267,7 +346,7 @@ EOF
             echo ""
             echo "[OK] Application is running in background"
             echo "PID: $PID (saved to subscription-manager.pid)"
-            echo "Logs: tail -f subscription-manager.log"
+            echo "Log file: subscription-manager.log"
             echo ""
             echo "Access: http://localhost:$APP_PORT"
             echo "Username: $APP_USERNAME"
@@ -282,7 +361,8 @@ EOF
             echo ""
         else
             echo "ERROR: Application failed to start. Check subscription-manager.log for details."
-            cat subscription-manager.log
+            echo ""
+            tail -20 subscription-manager.log
             exit 1
         fi
         ;;
