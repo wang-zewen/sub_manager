@@ -242,30 +242,182 @@ public class SubscriptionConverter {
     }
 
     private Map<String, Object> parseVLESSToClash(ProxyNode node) {
-        // Simplified VLESS parsing
-        Map<String, Object> proxy = new LinkedHashMap<>();
-        proxy.put("name", node.getName());
-        proxy.put("type", "vless");
-        // TODO: Implement full VLESS parsing using node database fields
-        return proxy;
+        try {
+            Map<String, Object> proxy = new LinkedHashMap<>();
+
+            // Use database fields
+            proxy.put("name", node.getName());
+            proxy.put("type", "vless");
+            proxy.put("server", node.getServer());
+            proxy.put("port", node.getPort());
+            proxy.put("uuid", node.getUuid());
+            proxy.put("udp", true);
+
+            // Network type
+            String network = node.getNetwork() != null ? node.getNetwork() : "tcp";
+            proxy.put("network", network);
+
+            // Transport settings based on network type
+            switch (network) {
+                case "ws":
+                    Map<String, Object> wsOpts = new LinkedHashMap<>();
+                    if (node.getPath() != null && !node.getPath().isEmpty()) {
+                        wsOpts.put("path", node.getPath());
+                    }
+                    if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        Map<String, String> wsHeaders = new LinkedHashMap<>();
+                        wsHeaders.put("Host", node.getHost());
+                        wsOpts.put("headers", wsHeaders);
+                    }
+                    if (!wsOpts.isEmpty()) {
+                        proxy.put("ws-opts", wsOpts);
+                    }
+                    break;
+
+                case "grpc":
+                    Map<String, Object> grpcOpts = new LinkedHashMap<>();
+                    String serviceName = node.getPath() != null ? node.getPath() : "GunService";
+                    grpcOpts.put("grpc-service-name", serviceName);
+                    proxy.put("grpc-opts", grpcOpts);
+                    break;
+
+                case "http":
+                case "h2":
+                    Map<String, Object> h2Opts = new LinkedHashMap<>();
+                    if (node.getPath() != null && !node.getPath().isEmpty()) {
+                        h2Opts.put("path", Arrays.asList(node.getPath().split(",")));
+                    }
+                    if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        h2Opts.put("host", Arrays.asList(node.getHost().split(",")));
+                    }
+                    if (!h2Opts.isEmpty()) {
+                        proxy.put("h2-opts", h2Opts);
+                    }
+                    break;
+
+                case "quic":
+                    Map<String, Object> quicOpts = new LinkedHashMap<>();
+                    if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        quicOpts.put("quic-host", node.getHost());
+                    }
+                    if (node.getPath() != null && !node.getPath().isEmpty()) {
+                        quicOpts.put("quic-key", node.getPath());
+                    }
+                    if (!quicOpts.isEmpty()) {
+                        proxy.put("quic-opts", quicOpts);
+                    }
+                    break;
+            }
+
+            // TLS settings
+            Boolean tls = node.getTls();
+            if (tls != null && tls) {
+                proxy.put("tls", true);
+                if (node.getSni() != null && !node.getSni().isEmpty()) {
+                    proxy.put("servername", node.getSni());
+                } else if (node.getHost() != null && !node.getHost().isEmpty()) {
+                    proxy.put("servername", node.getHost());
+                }
+                proxy.put("skip-cert-verify", false);
+            }
+
+            return proxy;
+        } catch (Exception e) {
+            System.err.println("Failed to parse VLESS to Clash: " + e.getMessage());
+            return null;
+        }
     }
 
     private Map<String, Object> parseTrojanToClash(ProxyNode node) {
-        // Simplified Trojan parsing
-        Map<String, Object> proxy = new LinkedHashMap<>();
-        proxy.put("name", node.getName());
-        proxy.put("type", "trojan");
-        // TODO: Implement full Trojan parsing using node database fields
-        return proxy;
+        try {
+            Map<String, Object> proxy = new LinkedHashMap<>();
+
+            // Use database fields
+            proxy.put("name", node.getName());
+            proxy.put("type", "trojan");
+            proxy.put("server", node.getServer());
+            proxy.put("port", node.getPort());
+            proxy.put("password", node.getUuid()); // Trojan uses password instead of uuid
+            proxy.put("udp", true);
+
+            // SNI - Trojan always uses TLS
+            if (node.getSni() != null && !node.getSni().isEmpty()) {
+                proxy.put("sni", node.getSni());
+            } else if (node.getHost() != null && !node.getHost().isEmpty()) {
+                proxy.put("sni", node.getHost());
+            }
+            proxy.put("skip-cert-verify", false);
+
+            // Network type (default to tcp for Trojan)
+            String network = node.getNetwork() != null ? node.getNetwork() : "tcp";
+            if (!"tcp".equals(network)) {
+                proxy.put("network", network);
+            }
+
+            // Transport settings based on network type
+            switch (network) {
+                case "ws":
+                    Map<String, Object> wsOpts = new LinkedHashMap<>();
+                    if (node.getPath() != null && !node.getPath().isEmpty()) {
+                        wsOpts.put("path", node.getPath());
+                    }
+                    if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        Map<String, String> wsHeaders = new LinkedHashMap<>();
+                        wsHeaders.put("Host", node.getHost());
+                        wsOpts.put("headers", wsHeaders);
+                    }
+                    if (!wsOpts.isEmpty()) {
+                        proxy.put("ws-opts", wsOpts);
+                    }
+                    break;
+
+                case "grpc":
+                    Map<String, Object> grpcOpts = new LinkedHashMap<>();
+                    String serviceName = node.getPath() != null ? node.getPath() : "GunService";
+                    grpcOpts.put("grpc-service-name", serviceName);
+                    proxy.put("grpc-opts", grpcOpts);
+                    break;
+
+                case "http":
+                case "h2":
+                    Map<String, Object> h2Opts = new LinkedHashMap<>();
+                    if (node.getPath() != null && !node.getPath().isEmpty()) {
+                        h2Opts.put("path", Arrays.asList(node.getPath().split(",")));
+                    }
+                    if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        h2Opts.put("host", Arrays.asList(node.getHost().split(",")));
+                    }
+                    if (!h2Opts.isEmpty()) {
+                        proxy.put("h2-opts", h2Opts);
+                    }
+                    break;
+            }
+
+            return proxy;
+        } catch (Exception e) {
+            System.err.println("Failed to parse Trojan to Clash: " + e.getMessage());
+            return null;
+        }
     }
 
     private Map<String, Object> parseShadowsocksToClash(ProxyNode node) {
-        // Simplified SS parsing
-        Map<String, Object> proxy = new LinkedHashMap<>();
-        proxy.put("name", node.getName());
-        proxy.put("type", "ss");
-        // TODO: Implement full SS parsing using node database fields
-        return proxy;
+        try {
+            Map<String, Object> proxy = new LinkedHashMap<>();
+
+            // Use database fields
+            proxy.put("name", node.getName());
+            proxy.put("type", "ss");
+            proxy.put("server", node.getServer());
+            proxy.put("port", node.getPort());
+            proxy.put("cipher", node.getCipher() != null ? node.getCipher() : "aes-256-gcm");
+            proxy.put("password", node.getUuid()); // SS uses password stored in uuid field
+            proxy.put("udp", true);
+
+            return proxy;
+        } catch (Exception e) {
+            System.err.println("Failed to parse Shadowsocks to Clash: " + e.getMessage());
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")
