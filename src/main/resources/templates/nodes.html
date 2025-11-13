@@ -137,6 +137,24 @@
                     </div>
                 </form>
 
+                <!-- Batch Import Section -->
+                <div th:if="${editMode == null or editMode == false}" class="mt-4 pt-4 border-top">
+                    <h6 class="mb-3"><i class="fas fa-file-import"></i> Batch Import from Subscription</h6>
+                    <form th:action="@{/groups/{groupId}/nodes/batch-import(groupId=${group.id})}" method="post">
+                        <div class="mb-3">
+                            <label for="subscriptionContent" class="form-label">Subscription Content</label>
+                            <textarea class="form-control" id="subscriptionContent" name="subscriptionContent"
+                                      rows="4" placeholder="Paste Base64 encoded subscription content or multiple node URLs (one per line)"></textarea>
+                            <div class="form-text">
+                                Supports: Base64 encoded subscription links, or multiple node URLs separated by newlines
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-file-import"></i> Import Nodes
+                        </button>
+                    </form>
+                </div>
+
                 <!-- Edit Node Form -->
                 <form th:if="${editMode != null and editMode == true}" th:action="@{/groups/nodes/{id}/update(id=${node.id})}" method="post" th:object="${node}">
                     <div class="alert alert-info">

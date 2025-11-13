@@ -97,6 +97,89 @@ public class SubscriptionGroupController {
         return "redirect:/groups/" + groupId + "/nodes";
     }
 
+    @PostMapping("/{groupId}/nodes/batch-import")
+    public String batchImportNodes(@PathVariable Long groupId,
+                                   @RequestParam("subscriptionContent") String subscriptionContent,
+                                   RedirectAttributes redirectAttributes) {
+        if (subscriptionContent == null || subscriptionContent.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Subscription content is empty");
+            return "redirect:/groups/" + groupId + "/nodes";
+        }
+
+        SubscriptionGroup group = subscriptionService.getGroupById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        try {
+            // Try to decode as Base64 first
+            String decodedContent = subscriptionContent.trim();
+            try {
+                byte[] decodedBytes = java.util.Base64.getDecoder().decode(subscriptionContent.trim());
+                decodedContent = new String(decodedBytes, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                // Not Base64, use original content
+            }
+
+            // Split by newlines and filter valid node URLs
+            String[] lines = decodedContent.split("\\r?\\n");
+            int successCount = 0;
+            int errorCount = 0;
+
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+
+                // Check if line is a valid node URL
+                if (line.startsWith("vmess://") || line.startsWith("vless://") ||
+                    line.startsWith("trojan://") || line.startsWith("ss://") ||
+                    line.startsWith("hysteria://") || line.startsWith("hysteria2://")) {
+
+                    try {
+                        ProxyNode node = new ProxyNode();
+                        node.setConfig(line);
+                        node.setSubscriptionGroup(group);
+
+                        // Determine node type from URL
+                        if (line.startsWith("vmess://")) {
+                            node.setType("vmess");
+                        } else if (line.startsWith("vless://")) {
+                            node.setType("vless");
+                        } else if (line.startsWith("trojan://")) {
+                            node.setType("trojan");
+                        } else if (line.startsWith("ss://")) {
+                            node.setType("shadowsocks");
+                        } else if (line.startsWith("hysteria://")) {
+                            node.setType("hysteria");
+                        } else if (line.startsWith("hysteria2://")) {
+                            node.setType("hysteria2");
+                        }
+
+                        // Parse node URL to extract detailed information
+                        nodeParser.parseAndPopulateNode(node);
+
+                        subscriptionService.createNode(node);
+                        successCount++;
+                    } catch (Exception e) {
+                        System.err.println("Failed to import node: " + line + " - " + e.getMessage());
+                        errorCount++;
+                    }
+                }
+            }
+
+            if (successCount > 0) {
+                redirectAttributes.addFlashAttribute("success",
+                    "Successfully imported " + successCount + " node(s)" +
+                    (errorCount > 0 ? " (" + errorCount + " failed)" : ""));
+            } else {
+                redirectAttributes.addFlashAttribute("error", "No valid nodes found in the content");
+            }
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to import nodes: " + e.getMessage());
+        }
+
+        return "redirect:/groups/" + groupId + "/nodes";
+    }
+
     @GetMapping("/nodes/{id}/edit")
     public String editNodeForm(@PathVariable Long id, Model model, HttpServletRequest request) {
         ProxyNode node = subscriptionService.getNodeById(id)
