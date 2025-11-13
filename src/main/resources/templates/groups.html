@@ -90,6 +90,7 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
+                                <th>Token</th>
                                 <th>Description</th>
                                 <th>Subscription URL</th>
                                 <th>Nodes</th>
@@ -104,6 +105,9 @@
                                     <br>
                                     <span th:if="${group.isActive}" class="badge bg-success">Active</span>
                                     <span th:unless="${group.isActive}" class="badge bg-secondary">Inactive</span>
+                                </td>
+                                <td>
+                                    <code class="text-primary" th:text="${group.token}"></code>
                                 </td>
                                 <td th:text="${group.description} ?: '-'"></td>
                                 <td>
