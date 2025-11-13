@@ -46,6 +46,14 @@ public class NodeParser {
             // Parse JSON
             Map<String, Object> vmess = parseJson(decoded);
 
+            // Parse node name from "ps" field if not already set
+            if (node.getName() == null || node.getName().isEmpty()) {
+                String nodeName = vmess.getOrDefault("ps", "").toString();
+                if (!nodeName.isEmpty()) {
+                    node.setName(nodeName);
+                }
+            }
+
             // Populate fields
             node.setServer(vmess.getOrDefault("add", "").toString());
             node.setPort(Integer.parseInt(vmess.getOrDefault("port", "0").toString()));
@@ -79,10 +87,20 @@ public class NodeParser {
     }
 
     private void parseVLESSNode(ProxyNode node, String vlessUrl) {
-        // TODO: Implement VLESS parsing
-        // Format: vless://uuid@server:port?parameters
+        // Format: vless://uuid@server:port?parameters#name
         try {
             String url = vlessUrl.substring(8); // Remove "vless://"
+
+            // Extract name from fragment (part after #)
+            int fragmentIndex = url.indexOf('#');
+            if (fragmentIndex > 0 && (node.getName() == null || node.getName().isEmpty())) {
+                String nodeName = url.substring(fragmentIndex + 1);
+                nodeName = java.net.URLDecoder.decode(nodeName, StandardCharsets.UTF_8);
+                if (!nodeName.isEmpty()) {
+                    node.setName(nodeName);
+                }
+                url = url.substring(0, fragmentIndex); // Remove fragment for further parsing
+            }
 
             // Basic parsing
             int atIndex = url.indexOf('@');
@@ -94,8 +112,20 @@ public class NodeParser {
                 int queryIndex = remaining.indexOf('?');
 
                 String serverPort;
+                Map<String, String> params = new HashMap<>();
                 if (queryIndex > 0) {
                     serverPort = remaining.substring(0, queryIndex);
+                    // Parse query parameters
+                    String queryString = remaining.substring(queryIndex + 1);
+                    String[] pairs = queryString.split("&");
+                    for (String pair : pairs) {
+                        int eqIndex = pair.indexOf('=');
+                        if (eqIndex > 0) {
+                            String key = pair.substring(0, eqIndex);
+                            String value = java.net.URLDecoder.decode(pair.substring(eqIndex + 1), StandardCharsets.UTF_8);
+                            params.put(key, value);
+                        }
+                    }
                 } else {
                     serverPort = remaining;
                 }
@@ -109,6 +139,23 @@ public class NodeParser {
                         // Ignore
                     }
                 }
+
+                // Parse additional parameters
+                if (params.containsKey("type")) {
+                    node.setNetwork(params.get("type"));
+                }
+                if (params.containsKey("host")) {
+                    node.setHost(params.get("host"));
+                }
+                if (params.containsKey("path")) {
+                    node.setPath(params.get("path"));
+                }
+                if (params.containsKey("security")) {
+                    node.setTls("tls".equals(params.get("security")));
+                }
+                if (params.containsKey("sni")) {
+                    node.setSni(params.get("sni"));
+                }
             }
         } catch (Exception e) {
             System.err.println("Failed to parse VLESS: " + e.getMessage());
@@ -116,10 +163,20 @@ public class NodeParser {
     }
 
     private void parseTrojanNode(ProxyNode node, String trojanUrl) {
-        // TODO: Implement Trojan parsing
-        // Format: trojan://password@server:port?parameters
+        // Format: trojan://password@server:port?parameters#name
         try {
             String url = trojanUrl.substring(9); // Remove "trojan://"
+
+            // Extract name from fragment (part after #)
+            int fragmentIndex = url.indexOf('#');
+            if (fragmentIndex > 0 && (node.getName() == null || node.getName().isEmpty())) {
+                String nodeName = url.substring(fragmentIndex + 1);
+                nodeName = java.net.URLDecoder.decode(nodeName, StandardCharsets.UTF_8);
+                if (!nodeName.isEmpty()) {
+                    node.setName(nodeName);
+                }
+                url = url.substring(0, fragmentIndex); // Remove fragment for further parsing
+            }
 
             int atIndex = url.indexOf('@');
             if (atIndex > 0) {
@@ -130,8 +187,20 @@ public class NodeParser {
                 int queryIndex = remaining.indexOf('?');
 
                 String serverPort;
+                Map<String, String> params = new HashMap<>();
                 if (queryIndex > 0) {
                     serverPort = remaining.substring(0, queryIndex);
+                    // Parse query parameters
+                    String queryString = remaining.substring(queryIndex + 1);
+                    String[] pairs = queryString.split("&");
+                    for (String pair : pairs) {
+                        int eqIndex = pair.indexOf('=');
+                        if (eqIndex > 0) {
+                            String key = pair.substring(0, eqIndex);
+                            String value = java.net.URLDecoder.decode(pair.substring(eqIndex + 1), StandardCharsets.UTF_8);
+                            params.put(key, value);
+                        }
+                    }
                 } else {
                     serverPort = remaining;
                 }
@@ -145,6 +214,23 @@ public class NodeParser {
                         // Ignore
                     }
                 }
+
+                // Parse additional parameters
+                if (params.containsKey("type")) {
+                    node.setNetwork(params.get("type"));
+                }
+                if (params.containsKey("host")) {
+                    node.setHost(params.get("host"));
+                }
+                if (params.containsKey("path")) {
+                    node.setPath(params.get("path"));
+                }
+                if (params.containsKey("security")) {
+                    node.setTls("tls".equals(params.get("security")));
+                }
+                if (params.containsKey("sni")) {
+                    node.setSni(params.get("sni"));
+                }
             }
         } catch (Exception e) {
             System.err.println("Failed to parse Trojan: " + e.getMessage());
@@ -152,10 +238,20 @@ public class NodeParser {
     }
 
     private void parseShadowsocksNode(ProxyNode node, String ssUrl) {
-        // TODO: Implement Shadowsocks parsing
-        // Format: ss://base64(method:password)@server:port
+        // Format: ss://base64(method:password)@server:port#name
         try {
             String url = ssUrl.substring(5); // Remove "ss://"
+
+            // Extract name from fragment (part after #)
+            int fragmentIndex = url.indexOf('#');
+            if (fragmentIndex > 0 && (node.getName() == null || node.getName().isEmpty())) {
+                String nodeName = url.substring(fragmentIndex + 1);
+                nodeName = java.net.URLDecoder.decode(nodeName, StandardCharsets.UTF_8);
+                if (!nodeName.isEmpty()) {
+                    node.setName(nodeName);
+                }
+                url = url.substring(0, fragmentIndex); // Remove fragment for further parsing
+            }
 
             int atIndex = url.indexOf('@');
             if (atIndex > 0) {

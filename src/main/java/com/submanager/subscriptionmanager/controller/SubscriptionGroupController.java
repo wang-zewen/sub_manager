@@ -156,6 +156,15 @@ public class SubscriptionGroupController {
                         // Parse node URL to extract detailed information
                         nodeParser.parseAndPopulateNode(node);
 
+                        // Ensure node has a name (fallback to server:port or type+index)
+                        if (node.getName() == null || node.getName().isEmpty()) {
+                            if (node.getServer() != null && !node.getServer().isEmpty()) {
+                                node.setName(node.getServer() + ":" + node.getPort());
+                            } else {
+                                node.setName(node.getType() + "-node-" + (successCount + 1));
+                            }
+                        }
+
                         subscriptionService.createNode(node);
                         successCount++;
                     } catch (Exception e) {
