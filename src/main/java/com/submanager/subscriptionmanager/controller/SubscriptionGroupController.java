@@ -45,6 +45,31 @@ public class SubscriptionGroupController {
             return "redirect:/groups";
         }
 
+        // Validate custom token if provided
+        if (group.getToken() != null && !group.getToken().trim().isEmpty()) {
+            String token = group.getToken().trim();
+
+            // Validate token format: only alphanumeric and hyphens
+            if (!token.matches("^[a-zA-Z0-9-_]+$")) {
+                redirectAttributes.addFlashAttribute("error", "Token can only contain letters, numbers, hyphens, and underscores");
+                return "redirect:/groups";
+            }
+
+            // Validate token length
+            if (token.length() < 4 || token.length() > 50) {
+                redirectAttributes.addFlashAttribute("error", "Token must be between 4 and 50 characters");
+                return "redirect:/groups";
+            }
+
+            // Check if token already exists
+            if (subscriptionService.getGroupByToken(token).isPresent()) {
+                redirectAttributes.addFlashAttribute("error", "Token already exists. Please choose a different token");
+                return "redirect:/groups";
+            }
+
+            group.setToken(token);
+        }
+
         subscriptionService.createGroup(group);
         redirectAttributes.addFlashAttribute("success", "Subscription group created successfully");
         return "redirect:/groups";

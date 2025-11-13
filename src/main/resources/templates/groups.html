@@ -46,12 +46,18 @@
             <div class="card-body">
                 <form th:action="@{/groups}" method="post" th:object="${group}">
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="name" class="form-label">Group Name *</label>
                             <input type="text" class="form-control" id="name" th:field="*{name}"
                                    placeholder="e.g., My Nodes" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label for="token" class="form-label">Custom Token (Optional)</label>
+                            <input type="text" class="form-control" id="token" th:field="*{token}"
+                                   placeholder="Auto-generate if empty" maxlength="50">
+                            <small class="text-muted">Leave empty for auto-generation</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label for="description" class="form-label">Description</label>
                             <input type="text" class="form-control" id="description" th:field="*{description}"
                                    placeholder="Optional description">
