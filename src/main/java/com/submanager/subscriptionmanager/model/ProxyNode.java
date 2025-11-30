@@ -77,6 +77,16 @@ public class ProxyNode {
     @Column(name = "sort_order")
     private Integer order = 0;
 
+    // Health check fields
+    @Column(name = "health_status", length = 20)
+    private String healthStatus = "UNKNOWN"; // UP, DOWN, UNKNOWN
+
+    @Column(name = "last_check_time")
+    private LocalDateTime lastCheckTime;
+
+    @Column(name = "response_time")
+    private Long responseTime; // Response time in milliseconds
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

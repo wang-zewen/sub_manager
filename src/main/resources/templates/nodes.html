@@ -283,7 +283,14 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-server"></i> Nodes</h5>
-                <span class="badge bg-primary" th:text="${nodes.size()} + ' nodes'"></span>
+                <div>
+                    <span class="badge bg-primary me-2" th:text="${nodes.size()} + ' nodes'"></span>
+                    <form th:if="${!nodes.empty}" th:action="@{/groups/{groupId}/nodes/check-health(groupId=${group.id})}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="Check all nodes health">
+                            <i class="fas fa-heartbeat"></i> Check All Health
+                        </button>
+                    </form>
+                </div>
             </div>
             <div class="card-body">
                 <div th:if="${nodes.empty}" class="text-center text-muted py-5">
@@ -291,68 +298,111 @@
                     <p>No nodes yet. Add your first node above!</p>
                 </div>
 
-                <div th:unless="${nodes.empty}" class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Status</th>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Server:Port</th>
-                                <th>Network</th>
-                                <th>TLS</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="node, iter : ${nodes}">
-                                <td>
-                                    <span th:if="${node.isActive}" class="badge bg-success">Active</span>
-                                    <span th:unless="${node.isActive}" class="badge bg-secondary">Inactive</span>
-                                </td>
-                                <td>
-                                    <strong th:text="${node.name}"></strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-info" th:text="${node.type}"></span>
-                                </td>
-                                <td>
-                                    <small>
-                                        <span th:if="${node.server}" th:text="|${node.server}:${node.port}|"></span>
-                                        <span th:unless="${node.server}" class="text-muted">Not parsed</span>
-                                    </small>
-                                </td>
-                                <td>
-                                    <span th:if="${node.network}" class="badge bg-secondary" th:text="${node.network}"></span>
-                                    <span th:unless="${node.network}" class="text-muted">-</span>
-                                </td>
-                                <td>
-                                    <span th:if="${node.tls}" class="text-success"><i class="fas fa-lock"></i></span>
-                                    <span th:unless="${node.tls}" class="text-muted"><i class="fas fa-unlock"></i></span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info" type="button"
-                                                data-bs-toggle="collapse"
-                                                th:attr="data-bs-target=|#nodeDetails${node.id}|"
-                                                title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <a th:href="@{/groups/nodes/{id}/edit(id=${node.id})}"
-                                           class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form th:action="@{/groups/nodes/{id}/delete(id=${node.id})}" method="post" style="display: inline;"
-                                              onsubmit="return confirm('Are you sure you want to delete this node?');">
-                                            <button type="submit" class="btn btn-outline-danger" title="Delete">
-                                                <i class="fas fa-trash"></i>
+                <div th:unless="${nodes.empty}">
+                    <!-- Batch Actions Bar -->
+                    <div id="batchActionsBar" class="alert alert-light border d-none mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-check-square"></i>
+                                <span id="selectedCount">0</span> node(s) selected
+                            </span>
+                            <div>
+                                <button id="batchDeleteBtn" class="btn btn-sm btn-danger" onclick="batchDelete()">
+                                    <i class="fas fa-trash"></i> Delete Selected
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
+                                    <i class="fas fa-times"></i> Clear Selection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="selectAll" class="form-check-input" onclick="toggleSelectAll(this)">
+                                    </th>
+                                    <th style="width: 60px;">Health</th>
+                                    <th>Status</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Server:Port</th>
+                                    <th>Network</th>
+                                    <th>TLS</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="node, iter : ${nodes}">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input node-checkbox" th:value="${node.id}" onchange="updateBatchActions()">
+                                    </td>
+                                    <td>
+                                        <span th:if="${node.healthStatus == 'UP'}" class="text-success" title="Online">
+                                            <i class="fas fa-circle"></i>
+                                        </span>
+                                        <span th:if="${node.healthStatus == 'DOWN'}" class="text-danger" title="Offline">
+                                            <i class="fas fa-circle"></i>
+                                        </span>
+                                        <span th:if="${node.healthStatus == 'UNKNOWN' or node.healthStatus == null}" class="text-muted" title="Unknown">
+                                            <i class="fas fa-circle"></i>
+                                        </span>
+                                        <small th:if="${node.responseTime != null}" class="text-muted d-block" style="font-size: 0.7rem;" th:text="${node.responseTime + 'ms'}"></small>
+                                    </td>
+                                    <td>
+                                        <span th:if="${node.isActive}" class="badge bg-success">Active</span>
+                                        <span th:unless="${node.isActive}" class="badge bg-secondary">Inactive</span>
+                                    </td>
+                                    <td>
+                                        <strong th:text="${node.name}"></strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info" th:text="${node.type}"></span>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <span th:if="${node.server}" th:text="|${node.server}:${node.port}|"></span>
+                                            <span th:unless="${node.server}" class="text-muted">Not parsed</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span th:if="${node.network}" class="badge bg-secondary" th:text="${node.network}"></span>
+                                        <span th:unless="${node.network}" class="text-muted">-</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${node.tls}" class="text-success"><i class="fas fa-lock"></i></span>
+                                        <span th:unless="${node.tls}" class="text-muted"><i class="fas fa-unlock"></i></span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <form th:action="@{/groups/nodes/{id}/check-health(id=${node.id})}" method="post" style="display: inline;">
+                                                <button type="submit" class="btn btn-outline-success" title="Check Health">
+                                                    <i class="fas fa-heartbeat"></i>
+                                                </button>
+                                            </form>
+                                            <button class="btn btn-outline-info" type="button"
+                                                    data-bs-toggle="collapse"
+                                                    th:attr="data-bs-target=|#nodeDetails${node.id}|"
+                                                    title="View Details">
+                                                <i class="fas fa-eye"></i>
                                             </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+                                            <a th:href="@{/groups/nodes/{id}/edit(id=${node.id})}"
+                                               class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form th:action="@{/groups/nodes/{id}/delete(id=${node.id})}" method="post" style="display: inline;"
+                                                  onsubmit="return confirm('Are you sure you want to delete this node?');">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
                             <tr th:each="node, iter : ${nodes}" class="collapse" th:id="|nodeDetails${node.id}|">
-                                <td colspan="7">
+                                <td colspan="9">
                                     <div class="card">
                                         <div class="card-body">
                                             <h6 class="card-title"><i class="fas fa-info-circle"></i> Node Details</h6>
@@ -400,5 +450,72 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/js/main.js}"></script>
+    <script th:inline="javascript">
+        // Batch selection and deletion functionality
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.node-checkbox');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+            updateBatchActions();
+        }
+
+        function updateBatchActions() {
+            const checkboxes = document.querySelectorAll('.node-checkbox:checked');
+            const count = checkboxes.length;
+            const batchBar = document.getElementById('batchActionsBar');
+            const selectedCount = document.getElementById('selectedCount');
+
+            selectedCount.textContent = count;
+
+            if (count > 0) {
+                batchBar.classList.remove('d-none');
+            } else {
+                batchBar.classList.add('d-none');
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.node-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('selectAll').checked = false;
+            updateBatchActions();
+        }
+
+        function batchDelete() {
+            const checkboxes = document.querySelectorAll('.node-checkbox:checked');
+            const nodeIds = Array.from(checkboxes).map(cb => cb.value);
+
+            if (nodeIds.length === 0) {
+                alert('Please select at least one node to delete');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${nodeIds.length} node(s)?`)) {
+                return;
+            }
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/groups/nodes/batch-delete';
+
+            // Add groupId
+            const groupIdInput = document.createElement('input');
+            groupIdInput.type = 'hidden';
+            groupIdInput.name = 'groupId';
+            groupIdInput.value = /*[[${group.id}]]*/ '0';
+            form.appendChild(groupIdInput);
+
+            // Add each nodeId
+            nodeIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'nodeIds';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
 </body>
 </html>
