@@ -540,6 +540,13 @@
             form.method = 'POST';
             form.action = '/groups/nodes/batch-delete';
 
+            // Add CSRF token (required by Spring Security)
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = /*[[${_csrf.parameterName}]]*/ '_csrf';
+            csrfToken.value = /*[[${_csrf.token}]]*/ '';
+            form.appendChild(csrfToken);
+
             // Add groupId
             const groupIdInput = document.createElement('input');
             groupIdInput.type = 'hidden';
