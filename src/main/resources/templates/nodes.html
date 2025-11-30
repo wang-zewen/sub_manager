@@ -322,7 +322,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 40px;">
-                                        <input type="checkbox" id="selectAll" class="form-check-input" onclick="toggleSelectAll(this)">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
                                     </th>
                                     <th style="width: 60px;">Health</th>
                                     <th>Status</th>
@@ -337,7 +337,7 @@
                             <tbody>
                                 <tr th:each="node, iter : ${nodes}">
                                     <td>
-                                        <input type="checkbox" class="form-check-input node-checkbox" th:value="${node.id}" onchange="updateBatchActions()">
+                                        <input type="checkbox" class="form-check-input node-checkbox" th:value="${node.id}">
                                     </td>
                                     <td>
                                         <span th:if="${node.healthStatus == 'UP'}" class="text-success" title="Online">
@@ -452,10 +452,43 @@
     <script th:src="@{/js/main.js}"></script>
     <script th:inline="javascript">
         // Batch selection and deletion functionality
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.node-checkbox');
-            checkboxes.forEach(cb => cb.checked = checkbox.checked);
-            updateBatchActions();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize batch actions
+            initBatchActions();
+        });
+
+        function initBatchActions() {
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const nodeCheckboxes = document.querySelectorAll('.node-checkbox');
+
+            // Add event listener to "Select All" checkbox
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function(e) {
+                    e.stopPropagation();
+                    const isChecked = this.checked;
+                    nodeCheckboxes.forEach(cb => {
+                        cb.checked = isChecked;
+                    });
+                    updateBatchActions();
+                });
+            }
+
+            // Add event listeners to individual node checkboxes
+            nodeCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function(e) {
+                    e.stopPropagation();
+                    updateBatchActions();
+
+                    // Update "Select All" checkbox state
+                    const totalCheckboxes = nodeCheckboxes.length;
+                    const checkedCheckboxes = document.querySelectorAll('.node-checkbox:checked').length;
+
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = totalCheckboxes === checkedCheckboxes;
+                        selectAllCheckbox.indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
+                    }
+                });
+            });
         }
 
         function updateBatchActions() {
@@ -464,18 +497,28 @@
             const batchBar = document.getElementById('batchActionsBar');
             const selectedCount = document.getElementById('selectedCount');
 
-            selectedCount.textContent = count;
+            if (selectedCount) {
+                selectedCount.textContent = count;
+            }
 
-            if (count > 0) {
-                batchBar.classList.remove('d-none');
-            } else {
-                batchBar.classList.add('d-none');
+            if (batchBar) {
+                if (count > 0) {
+                    batchBar.classList.remove('d-none');
+                } else {
+                    batchBar.classList.add('d-none');
+                }
             }
         }
 
         function clearSelection() {
-            document.querySelectorAll('.node-checkbox').forEach(cb => cb.checked = false);
-            document.getElementById('selectAll').checked = false;
+            document.querySelectorAll('.node-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            const selectAllCheckbox = document.getElementById('selectAll');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
             updateBatchActions();
         }
 

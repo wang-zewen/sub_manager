@@ -33,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Auto-dismiss alerts
-    const alerts = document.querySelectorAll('.alert');
+    // Auto-dismiss alerts (only dismissible ones, not batch actions bar)
+    const alerts = document.querySelectorAll('.alert.alert-dismissible');
     alerts.forEach(alert => {
         setTimeout(() => {
             const bsAlert = new bootstrap.Alert(alert);
