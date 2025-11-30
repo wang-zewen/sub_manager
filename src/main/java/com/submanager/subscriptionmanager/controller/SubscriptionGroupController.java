@@ -3,6 +3,7 @@ package com.submanager.subscriptionmanager.controller;
 import com.submanager.subscriptionmanager.model.ProxyNode;
 import com.submanager.subscriptionmanager.model.SubscriptionGroup;
 import com.submanager.subscriptionmanager.service.NodeParser;
+import com.submanager.subscriptionmanager.service.NodeHealthCheckService;
 import com.submanager.subscriptionmanager.service.SubscriptionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,6 +25,9 @@ public class SubscriptionGroupController {
 
     @Autowired
     private NodeParser nodeParser;
+
+    @Autowired
+    private NodeHealthCheckService healthCheckService;
 
     @GetMapping
     public String listGroups(Model model, HttpServletRequest request) {
@@ -280,6 +284,70 @@ public class SubscriptionGroupController {
         subscriptionService.deleteNode(id);
 
         redirectAttributes.addFlashAttribute("success", "Node deleted successfully");
+        return "redirect:/groups/" + groupId + "/nodes";
+    }
+
+    @PostMapping("/nodes/batch-delete")
+    public String batchDeleteNodes(@RequestParam("nodeIds") List<Long> nodeIds,
+                                   @RequestParam("groupId") Long groupId,
+                                   RedirectAttributes redirectAttributes) {
+        if (nodeIds == null || nodeIds.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "No nodes selected");
+            return "redirect:/groups/" + groupId + "/nodes";
+        }
+
+        int deletedCount = 0;
+        for (Long nodeId : nodeIds) {
+            try {
+                subscriptionService.deleteNode(nodeId);
+                deletedCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to delete node " + nodeId + ": " + e.getMessage());
+            }
+        }
+
+        if (deletedCount > 0) {
+            redirectAttributes.addFlashAttribute("success",
+                "Successfully deleted " + deletedCount + " node(s)");
+        } else {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete nodes");
+        }
+
+        return "redirect:/groups/" + groupId + "/nodes";
+    }
+
+    @PostMapping("/{groupId}/nodes/check-health")
+    public String checkGroupNodesHealth(@PathVariable Long groupId,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            healthCheckService.checkGroupNodesHealthAsync(groupId);
+            redirectAttributes.addFlashAttribute("success",
+                "Health check started. Please refresh the page in a few seconds to see the results.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                "Failed to start health check: " + e.getMessage());
+        }
+
+        return "redirect:/groups/" + groupId + "/nodes";
+    }
+
+    @PostMapping("/nodes/{id}/check-health")
+    public String checkNodeHealth(@PathVariable Long id,
+                                  RedirectAttributes redirectAttributes) {
+        ProxyNode node = subscriptionService.getNodeById(id)
+                .orElseThrow(() -> new RuntimeException("Node not found"));
+
+        Long groupId = node.getSubscriptionGroup().getId();
+
+        try {
+            healthCheckService.checkNodeHealthAsync(id);
+            redirectAttributes.addFlashAttribute("success",
+                "Health check started for node: " + node.getName());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                "Failed to check node health: " + e.getMessage());
+        }
+
         return "redirect:/groups/" + groupId + "/nodes";
     }
 
