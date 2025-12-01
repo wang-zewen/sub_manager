@@ -5,6 +5,7 @@ import com.submanager.subscriptionmanager.model.SubscriptionGroup;
 import com.submanager.subscriptionmanager.service.NodeParser;
 import com.submanager.subscriptionmanager.service.NodeHealthCheckService;
 import com.submanager.subscriptionmanager.service.SubscriptionService;
+import com.submanager.subscriptionmanager.service.SubscriptionAutoUpdateService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,9 @@ public class SubscriptionGroupController {
 
     @Autowired
     private NodeHealthCheckService healthCheckService;
+
+    @Autowired
+    private SubscriptionAutoUpdateService autoUpdateService;
 
     @GetMapping
     public String listGroups(Model model, HttpServletRequest request) {
@@ -349,6 +353,21 @@ public class SubscriptionGroupController {
         }
 
         return "redirect:/groups/" + groupId + "/nodes";
+    }
+
+    @PostMapping("/{id}/update-from-source")
+    public String updateFromSource(@PathVariable Long id,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            autoUpdateService.triggerManualUpdate(id);
+            redirectAttributes.addFlashAttribute("success",
+                "Successfully updated subscription from source");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                "Failed to update from source: " + e.getMessage());
+        }
+
+        return "redirect:/groups/" + id + "/nodes";
     }
 
     private String getBaseUrl(HttpServletRequest request) {

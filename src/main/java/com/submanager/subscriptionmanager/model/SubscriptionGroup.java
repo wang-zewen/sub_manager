@@ -37,6 +37,22 @@ public class SubscriptionGroup {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
+    // Auto-update configuration
+    @Column(name = "source_url", length = 1000)
+    private String sourceUrl; // Upstream subscription URL
+
+    @Column(name = "auto_update_enabled")
+    private Boolean autoUpdateEnabled = false;
+
+    @Column(name = "update_interval_hours")
+    private Integer updateIntervalHours = 24; // Update every 24 hours
+
+    @Column(name = "last_update_time")
+    private LocalDateTime lastUpdateTime;
+
+    @Column(name = "last_update_status")
+    private String lastUpdateStatus; // SUCCESS, FAILED, NEVER
+
     @OneToMany(mappedBy = "subscriptionGroup", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProxyNode> nodes = new ArrayList<>();
 
