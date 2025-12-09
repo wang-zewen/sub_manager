@@ -146,6 +146,7 @@ public class SubscriptionFetchService {
             SubscriptionGroup group = source.getSubscriptionGroup();
             int addedCount = 0;
             int failedCount = 0;
+            String sourcePrefix = source.getName() != null ? source.getName() : "Sub";
 
             for (int i = 0; i < nodeUrls.size(); i++) {
                 String nodeUrl = nodeUrls.get(i);
@@ -157,13 +158,36 @@ public class SubscriptionFetchService {
                     // Try to parse the node
                     nodeParser.parseAndPopulateNode(node);
 
-                    // Generate a name if not parsed
-                    if (node.getName() == null || node.getName().isEmpty()) {
-                        if (node.getServer() != null && node.getPort() != null) {
-                            node.setName(node.getServer() + ":" + node.getPort());
+                    // Generate a unique and meaningful name
+                    String parsedName = node.getName();
+                    boolean needsNewName = parsedName == null ||
+                                          parsedName.trim().isEmpty() ||
+                                          parsedName.equals("-") ||
+                                          parsedName.equals("null");
+
+                    if (needsNewName) {
+                        // Generate name based on available information
+                        StringBuilder nameBuilder = new StringBuilder();
+
+                        // Add subscription source prefix
+                        nameBuilder.append(sourcePrefix).append("-");
+
+                        // Add server info if available
+                        if (node.getServer() != null && !node.getServer().isEmpty()) {
+                            nameBuilder.append(node.getServer());
+                            if (node.getPort() != null) {
+                                nameBuilder.append(":").append(node.getPort());
+                            }
                         } else {
-                            node.setName(node.getType() + "-node-" + (i + 1));
+                            // Fallback to type and index
+                            String nodeType = node.getType() != null ? node.getType() : "node";
+                            nameBuilder.append(nodeType).append("-").append(i + 1);
                         }
+
+                        node.setName(nameBuilder.toString());
+                    } else {
+                        // Even if parsed name exists, add subscription source prefix to avoid conflicts
+                        node.setName(sourcePrefix + "-" + parsedName);
                     }
 
                     node.setIsActive(true);
