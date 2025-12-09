@@ -40,6 +40,9 @@ public class SubscriptionGroup {
     @OneToMany(mappedBy = "subscriptionGroup", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProxyNode> nodes = new ArrayList<>();
 
+    @OneToMany(mappedBy = "subscriptionGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SubscriptionSource> subscriptionSources = new ArrayList<>();
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
