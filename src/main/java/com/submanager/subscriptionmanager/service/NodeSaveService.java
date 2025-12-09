@@ -1,8 +1,10 @@
 package com.submanager.subscriptionmanager.service;
 
 import com.submanager.subscriptionmanager.model.ProxyNode;
+import com.submanager.subscriptionmanager.model.SubscriptionGroup;
 import com.submanager.subscriptionmanager.model.SubscriptionSource;
 import com.submanager.subscriptionmanager.repository.ProxyNodeRepository;
+import com.submanager.subscriptionmanager.repository.SubscriptionGroupRepository;
 import com.submanager.subscriptionmanager.repository.SubscriptionSourceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +30,28 @@ public class NodeSaveService {
     @Autowired
     private SubscriptionSourceRepository subscriptionSourceRepository;
 
+    @Autowired
+    private SubscriptionGroupRepository subscriptionGroupRepository;
+
     /**
      * Save a single node in a separate transaction
+     * This method also ensures the bidirectional relationship is maintained
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean saveNode(ProxyNode node) {
         try {
-            proxyNodeRepository.save(node);
+            // Save the node (this will persist the foreign key relationship)
+            ProxyNode savedNode = proxyNodeRepository.save(node);
+
+            // Maintain bidirectional relationship by adding node to group's collection
+            if (savedNode.getSubscriptionGroup() != null) {
+                SubscriptionGroup group = savedNode.getSubscriptionGroup();
+                // Only add if not already in the list (to avoid duplicates)
+                if (!group.getNodes().contains(savedNode)) {
+                    group.getNodes().add(savedNode);
+                }
+            }
+
             logger.debug("Successfully saved node: {}", node.getName());
             return true;
         } catch (Exception e) {
