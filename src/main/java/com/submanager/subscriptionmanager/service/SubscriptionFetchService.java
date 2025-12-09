@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -37,6 +36,9 @@ public class SubscriptionFetchService {
 
     @Autowired
     private NodeParser nodeParser;
+
+    @Autowired
+    private NodeSaveService nodeSaveService;
 
     /**
      * Fetch subscription content from URL
@@ -121,7 +123,6 @@ public class SubscriptionFetchService {
     /**
      * Update nodes from a subscription source
      */
-    @Transactional
     public int updateNodesFromSubscription(Long subscriptionSourceId) {
         logger.info("Updating nodes from subscription source: {}", subscriptionSourceId);
 
@@ -137,16 +138,10 @@ public class SubscriptionFetchService {
 
             if (nodeUrls.isEmpty()) {
                 logger.warn("No valid nodes found in subscription: {}", source.getUrl());
-                source.setLastUpdateStatus("SUCCESS");
-                source.setLastErrorMessage("No nodes found in subscription");
-                source.setNodeCount(0);
-                source.setLastUpdated(LocalDateTime.now());
-                subscriptionSourceRepository.save(source);
+                nodeSaveService.updateSubscriptionSourceStatus(subscriptionSourceId, "SUCCESS",
+                    "No nodes found in subscription", 0, LocalDateTime.now());
                 return 0;
             }
-
-            // Delete old nodes from this subscription source (if we add tracking)
-            // For now, we'll add new nodes without deleting old ones
 
             SubscriptionGroup group = source.getSubscriptionGroup();
             int addedCount = 0;
@@ -172,20 +167,22 @@ public class SubscriptionFetchService {
                     }
 
                     node.setIsActive(true);
-                    proxyNodeRepository.save(node);
-                    addedCount++;
+
+                    // Save in a separate transaction to avoid rollback issues
+                    if (nodeSaveService.saveNode(node)) {
+                        addedCount++;
+                    } else {
+                        failedCount++;
+                    }
                 } catch (Exception e) {
                     logger.error("Failed to parse node: {}", nodeUrl, e);
                     failedCount++;
                 }
             }
 
-            // Update subscription source status
-            source.setLastUpdateStatus("SUCCESS");
-            source.setLastErrorMessage(null);
-            source.setNodeCount(addedCount);
-            source.setLastUpdated(LocalDateTime.now());
-            subscriptionSourceRepository.save(source);
+            // Update subscription source status in a separate transaction
+            nodeSaveService.updateSubscriptionSourceStatus(subscriptionSourceId, "SUCCESS", null,
+                addedCount, LocalDateTime.now());
 
             logger.info("Successfully added {} nodes, failed: {}", addedCount, failedCount);
             return addedCount;
@@ -193,11 +190,9 @@ public class SubscriptionFetchService {
         } catch (Exception e) {
             logger.error("Error updating subscription source: {}", subscriptionSourceId, e);
 
-            // Update subscription source with error
-            source.setLastUpdateStatus("FAILED");
-            source.setLastErrorMessage(e.getMessage());
-            source.setLastUpdated(LocalDateTime.now());
-            subscriptionSourceRepository.save(source);
+            // Update subscription source with error in a separate transaction
+            nodeSaveService.updateSubscriptionSourceStatus(subscriptionSourceId, "FAILED",
+                e.getMessage(), 0, LocalDateTime.now());
 
             throw new RuntimeException("Failed to update subscription: " + e.getMessage(), e);
         }
@@ -206,7 +201,6 @@ public class SubscriptionFetchService {
     /**
      * Update all subscription sources that need updating
      */
-    @Transactional
     public void updateAllDueSubscriptions() {
         logger.info("Starting automatic subscription update check");
 
