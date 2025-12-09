@@ -155,7 +155,27 @@ public class SubscriptionFetchService {
                     node.setConfig(nodeUrl);
                     node.setSubscriptionGroup(group);
 
-                    // Try to parse the node
+                    // Determine node type from URL prefix
+                    String lowerUrl = nodeUrl.toLowerCase();
+                    if (lowerUrl.startsWith("vmess://")) {
+                        node.setType("vmess");
+                    } else if (lowerUrl.startsWith("vless://")) {
+                        node.setType("vless");
+                    } else if (lowerUrl.startsWith("trojan://")) {
+                        node.setType("trojan");
+                    } else if (lowerUrl.startsWith("ss://")) {
+                        node.setType("shadowsocks");
+                    } else if (lowerUrl.startsWith("hysteria://")) {
+                        node.setType("hysteria");
+                    } else if (lowerUrl.startsWith("hysteria2://") || lowerUrl.startsWith("hy2://")) {
+                        node.setType("hysteria2");
+                    } else {
+                        logger.warn("Unknown node type for URL: {}", nodeUrl);
+                        failedCount++;
+                        continue;
+                    }
+
+                    // Try to parse the node details
                     nodeParser.parseAndPopulateNode(node);
 
                     // Generate a unique and meaningful name
@@ -195,8 +215,10 @@ public class SubscriptionFetchService {
                     // Save in a separate transaction to avoid rollback issues
                     if (nodeSaveService.saveNode(node)) {
                         addedCount++;
+                        logger.info("Successfully saved node: {} ({})", node.getName(), node.getType());
                     } else {
                         failedCount++;
+                        logger.warn("Failed to save node: {}", nodeUrl);
                     }
                 } catch (Exception e) {
                     logger.error("Failed to parse node: {}", nodeUrl, e);
@@ -205,8 +227,15 @@ public class SubscriptionFetchService {
             }
 
             // Update subscription source status in a separate transaction
-            nodeSaveService.updateSubscriptionSourceStatus(subscriptionSourceId, "SUCCESS", null,
-                addedCount, LocalDateTime.now());
+            // If all nodes failed, mark as FAILED
+            if (addedCount == 0 && failedCount > 0) {
+                nodeSaveService.updateSubscriptionSourceStatus(subscriptionSourceId, "FAILED",
+                    "All " + failedCount + " nodes failed to import", 0, LocalDateTime.now());
+            } else {
+                String statusMessage = failedCount > 0 ? failedCount + " nodes failed to import" : null;
+                nodeSaveService.updateSubscriptionSourceStatus(subscriptionSourceId, "SUCCESS",
+                    statusMessage, addedCount, LocalDateTime.now());
+            }
 
             logger.info("Successfully added {} nodes, failed: {}", addedCount, failedCount);
             return addedCount;
