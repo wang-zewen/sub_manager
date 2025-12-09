@@ -144,6 +144,18 @@ public class SubscriptionFetchService {
             }
 
             SubscriptionGroup group = source.getSubscriptionGroup();
+
+            // Delete old nodes from this subscription source before adding new ones
+            try {
+                List<ProxyNode> oldNodes = proxyNodeRepository.findBySubscriptionSourceId(subscriptionSourceId);
+                if (!oldNodes.isEmpty()) {
+                    logger.info("Deleting {} old nodes from subscription source {}", oldNodes.size(), subscriptionSourceId);
+                    proxyNodeRepository.deleteAll(oldNodes);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to delete old nodes: {}", e.getMessage());
+            }
+
             int addedCount = 0;
             int failedCount = 0;
             int nodeIndex = 1; // Start node numbering from 1
@@ -155,6 +167,7 @@ public class SubscriptionFetchService {
                     ProxyNode node = new ProxyNode();
                     node.setConfig(nodeUrl);
                     node.setSubscriptionGroup(group);
+                    node.setSubscriptionSourceId(subscriptionSourceId); // Track the source
 
                     // Determine node type from URL prefix
                     String lowerUrl = nodeUrl.toLowerCase();

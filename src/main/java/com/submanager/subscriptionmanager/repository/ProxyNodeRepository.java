@@ -10,4 +10,7 @@ import java.util.List;
 public interface ProxyNodeRepository extends JpaRepository<ProxyNode, Long> {
     List<ProxyNode> findBySubscriptionGroupIdOrderByOrderAsc(Long groupId);
     List<ProxyNode> findBySubscriptionGroupIdAndIsActiveTrueOrderByOrderAsc(Long groupId);
+
+    List<ProxyNode> findBySubscriptionSourceId(Long subscriptionSourceId);
+    void deleteBySubscriptionSourceId(Long subscriptionSourceId);
 }

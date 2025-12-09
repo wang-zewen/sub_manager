@@ -71,6 +71,9 @@ public class ProxyNode {
     @JoinColumn(name = "subscription_group_id", nullable = false)
     private SubscriptionGroup subscriptionGroup;
 
+    @Column(name = "subscription_source_id")
+    private Long subscriptionSourceId; // Track which subscription source this node came from
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 
