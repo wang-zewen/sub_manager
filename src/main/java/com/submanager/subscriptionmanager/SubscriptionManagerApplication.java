@@ -2,8 +2,10 @@ package com.submanager.subscriptionmanager;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class SubscriptionManagerApplication {
 
     public static void main(String[] args) {

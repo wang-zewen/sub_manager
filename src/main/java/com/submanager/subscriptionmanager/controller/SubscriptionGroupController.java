@@ -2,9 +2,12 @@ package com.submanager.subscriptionmanager.controller;
 
 import com.submanager.subscriptionmanager.model.ProxyNode;
 import com.submanager.subscriptionmanager.model.SubscriptionGroup;
+import com.submanager.subscriptionmanager.model.SubscriptionSource;
+import com.submanager.subscriptionmanager.repository.SubscriptionSourceRepository;
 import com.submanager.subscriptionmanager.service.NodeParser;
 import com.submanager.subscriptionmanager.service.NodeHealthCheckService;
 import com.submanager.subscriptionmanager.service.SubscriptionService;
+import com.submanager.subscriptionmanager.service.SubscriptionFetchService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,12 @@ public class SubscriptionGroupController {
 
     @Autowired
     private NodeHealthCheckService healthCheckService;
+
+    @Autowired
+    private SubscriptionSourceRepository subscriptionSourceRepository;
+
+    @Autowired
+    private SubscriptionFetchService subscriptionFetchService;
 
     @GetMapping
     public String listGroups(Model model, HttpServletRequest request) {
@@ -92,11 +101,14 @@ public class SubscriptionGroupController {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
         List<ProxyNode> nodes = subscriptionService.getNodesByGroupId(id);
+        List<SubscriptionSource> subscriptionSources = subscriptionSourceRepository.findBySubscriptionGroupId(id);
         String baseUrl = getBaseUrl(request);
 
         model.addAttribute("group", group);
         model.addAttribute("nodes", nodes);
         model.addAttribute("node", new ProxyNode());
+        model.addAttribute("subscriptionSources", subscriptionSources);
+        model.addAttribute("subscriptionSource", new SubscriptionSource());
         model.addAttribute("baseUrl", baseUrl);
         model.addAttribute("subscriptionUrl", baseUrl + "/sub/" + group.getToken());
         return "nodes";
@@ -349,6 +361,109 @@ public class SubscriptionGroupController {
         }
 
         return "redirect:/groups/" + groupId + "/nodes";
+    }
+
+    @PostMapping("/{groupId}/subscription-sources")
+    public String addSubscriptionSource(@PathVariable Long groupId,
+                                       @RequestParam("url") String url,
+                                       @RequestParam("name") String name,
+                                       @RequestParam(value = "autoUpdate", required = false, defaultValue = "true") Boolean autoUpdate,
+                                       @RequestParam(value = "updateInterval", required = false, defaultValue = "24") Integer updateInterval,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            SubscriptionGroup group = subscriptionService.getGroupById(groupId)
+                    .orElseThrow(() -> new RuntimeException("Group not found"));
+
+            SubscriptionSource source = new SubscriptionSource();
+            source.setUrl(url);
+            source.setName(name);
+            source.setAutoUpdate(autoUpdate);
+            source.setUpdateInterval(updateInterval);
+            source.setSubscriptionGroup(group);
+            source.setIsActive(true);
+            source.setLastUpdateStatus("PENDING");
+
+            subscriptionSourceRepository.save(source);
+
+            redirectAttributes.addFlashAttribute("success", "Subscription source added successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to add subscription source: " + e.getMessage());
+        }
+
+        return "redirect:/groups/" + groupId + "/nodes";
+    }
+
+    @PostMapping("/subscription-sources/{id}/delete")
+    public String deleteSubscriptionSource(@PathVariable Long id,
+                                          RedirectAttributes redirectAttributes) {
+        try {
+            SubscriptionSource source = subscriptionSourceRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Subscription source not found"));
+
+            Long groupId = source.getSubscriptionGroup().getId();
+
+            subscriptionSourceRepository.delete(source);
+
+            redirectAttributes.addFlashAttribute("success", "Subscription source deleted successfully");
+            return "redirect:/groups/" + groupId + "/nodes";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Failed to delete subscription source: " + e.getMessage());
+            return "redirect:/groups";
+        }
+    }
+
+    @PostMapping("/subscription-sources/{id}/refresh")
+    public String refreshSubscriptionSource(@PathVariable Long id,
+                                           RedirectAttributes redirectAttributes) {
+        try {
+            SubscriptionSource source = subscriptionSourceRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Subscription source not found"));
+
+            Long groupId = source.getSubscriptionGroup().getId();
+
+            int addedCount = subscriptionFetchService.updateNodesFromSubscription(id);
+
+            redirectAttributes.addFlashAttribute("success",
+                "Subscription refreshed successfully. Added " + addedCount + " node(s)");
+
+            return "redirect:/groups/" + groupId + "/nodes";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                "Failed to refresh subscription: " + e.getMessage());
+
+            // Try to get group ID from error context
+            try {
+                SubscriptionSource source = subscriptionSourceRepository.findById(id).orElse(null);
+                if (source != null) {
+                    return "redirect:/groups/" + source.getSubscriptionGroup().getId() + "/nodes";
+                }
+            } catch (Exception ignored) {}
+
+            return "redirect:/groups";
+        }
+    }
+
+    @PostMapping("/subscription-sources/{id}/toggle")
+    public String toggleSubscriptionSource(@PathVariable Long id,
+                                          RedirectAttributes redirectAttributes) {
+        try {
+            SubscriptionSource source = subscriptionSourceRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Subscription source not found"));
+
+            Long groupId = source.getSubscriptionGroup().getId();
+
+            source.setIsActive(!source.getIsActive());
+            subscriptionSourceRepository.save(source);
+
+            redirectAttributes.addFlashAttribute("success",
+                "Subscription source " + (source.getIsActive() ? "activated" : "deactivated"));
+
+            return "redirect:/groups/" + groupId + "/nodes";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                "Failed to toggle subscription source: " + e.getMessage());
+            return "redirect:/groups";
+        }
     }
 
     private String getBaseUrl(HttpServletRequest request) {
