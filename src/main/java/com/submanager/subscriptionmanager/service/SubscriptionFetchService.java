@@ -35,6 +35,9 @@ public class SubscriptionFetchService {
     @Autowired
     private ProxyNodeRepository proxyNodeRepository;
 
+    @Autowired
+    private NodeParser nodeParser;
+
     /**
      * Fetch subscription content from URL
      */
@@ -157,7 +160,7 @@ public class SubscriptionFetchService {
                     node.setSubscriptionGroup(group);
 
                     // Try to parse the node
-                    NodeParser.parseAndPopulateNode(node);
+                    nodeParser.parseAndPopulateNode(node);
 
                     // Generate a name if not parsed
                     if (node.getName() == null || node.getName().isEmpty()) {
