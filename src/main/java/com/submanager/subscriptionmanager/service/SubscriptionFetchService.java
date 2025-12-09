@@ -146,6 +146,7 @@ public class SubscriptionFetchService {
             SubscriptionGroup group = source.getSubscriptionGroup();
             int addedCount = 0;
             int failedCount = 0;
+            int nodeIndex = 1; // Start node numbering from 1
             String sourcePrefix = source.getName() != null ? source.getName() : "Sub";
 
             for (int i = 0; i < nodeUrls.size(); i++) {
@@ -178,43 +179,28 @@ public class SubscriptionFetchService {
                     // Try to parse the node details
                     nodeParser.parseAndPopulateNode(node);
 
-                    // Generate a unique and meaningful name
+                    // Generate a unique name: SourceName-N or SourceName-N-ParsedName
                     String parsedName = node.getName();
-                    boolean needsNewName = parsedName == null ||
-                                          parsedName.trim().isEmpty() ||
-                                          parsedName.equals("-") ||
-                                          parsedName.equals("null");
+                    boolean hasMeaningfulName = parsedName != null &&
+                                               !parsedName.trim().isEmpty() &&
+                                               !parsedName.equals("-") &&
+                                               !parsedName.equals("null");
 
-                    if (needsNewName) {
-                        // Generate name based on available information
-                        StringBuilder nameBuilder = new StringBuilder();
+                    StringBuilder nameBuilder = new StringBuilder();
+                    nameBuilder.append(sourcePrefix).append("-").append(nodeIndex);
 
-                        // Add subscription source prefix
-                        nameBuilder.append(sourcePrefix).append("-");
-
-                        // Add server info if available
-                        if (node.getServer() != null && !node.getServer().isEmpty()) {
-                            nameBuilder.append(node.getServer());
-                            if (node.getPort() != null) {
-                                nameBuilder.append(":").append(node.getPort());
-                            }
-                        } else {
-                            // Fallback to type and index
-                            String nodeType = node.getType() != null ? node.getType() : "node";
-                            nameBuilder.append(nodeType).append("-").append(i + 1);
-                        }
-
-                        node.setName(nameBuilder.toString());
-                    } else {
-                        // Even if parsed name exists, add subscription source prefix to avoid conflicts
-                        node.setName(sourcePrefix + "-" + parsedName);
+                    // Optionally append parsed name if it's meaningful
+                    if (hasMeaningfulName) {
+                        nameBuilder.append("-").append(parsedName);
                     }
 
+                    node.setName(nameBuilder.toString());
                     node.setIsActive(true);
 
                     // Save in a separate transaction to avoid rollback issues
                     if (nodeSaveService.saveNode(node)) {
                         addedCount++;
+                        nodeIndex++; // Only increment on successful save
                         logger.info("Successfully saved node: {} ({})", node.getName(), node.getType());
                     } else {
                         failedCount++;
