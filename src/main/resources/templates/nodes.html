@@ -374,15 +374,51 @@
                                 <option th:value="true">Yes</option>
                             </select>
                         </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="editSecurity" class="form-label">Security</label>
+                            <select class="form-select" id="editSecurity" th:field="*{security}">
+                                <option value="">None</option>
+                                <option value="tls">TLS</option>
+                                <option value="reality">Reality</option>
+                            </select>
+                        </div>
                         <div class="col-md-4 mb-3">
                             <label for="editSni" class="form-label">SNI</label>
                             <input type="text" class="form-control" id="editSni" th:field="*{sni}"
                                    placeholder="SNI">
                         </div>
-                        <div class="col-md-2 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="editAlterId" class="form-label">AlterID</label>
                             <input type="number" class="form-control" id="editAlterId" th:field="*{alterId}"
                                    placeholder="0">
+                        </div>
+                    </div>
+
+                    <!-- Reality Protocol Settings -->
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="editFlow" class="form-label">Flow</label>
+                            <input type="text" class="form-control" id="editFlow" th:field="*{flow}"
+                                   placeholder="xtls-rprx-vision">
+                            <small class="text-muted">For Reality/XTLS</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="editFingerprint" class="form-label">Fingerprint</label>
+                            <input type="text" class="form-control" id="editFingerprint" th:field="*{fingerprint}"
+                                   placeholder="chrome">
+                            <small class="text-muted">Browser fingerprint</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="editPublicKey" class="form-label">Public Key</label>
+                            <input type="text" class="form-control" id="editPublicKey" th:field="*{publicKey}"
+                                   placeholder="Reality pbk">
+                            <small class="text-muted">Reality public key</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="editShortId" class="form-label">Short ID</label>
+                            <input type="text" class="form-control" id="editShortId" th:field="*{shortId}"
+                                   placeholder="Reality sid">
+                            <small class="text-muted">Reality short ID</small>
                         </div>
                     </div>
 
