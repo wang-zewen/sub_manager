@@ -67,6 +67,22 @@ public class ProxyNode {
     @Column(length = 500)
     private String path; // Path for WS/HTTP/gRPC
 
+    // Reality protocol fields
+    @Column(length = 50)
+    private String flow; // Flow control (xtls-rprx-vision, etc.)
+
+    @Column(length = 20)
+    private String security; // Security type (reality, tls, none)
+
+    @Column(length = 100)
+    private String publicKey; // Reality public key (pbk)
+
+    @Column(length = 50)
+    private String shortId; // Reality short ID (sid)
+
+    @Column(length = 50)
+    private String fingerprint; // Browser fingerprint (fp)
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_group_id", nullable = false)
     private SubscriptionGroup subscriptionGroup;

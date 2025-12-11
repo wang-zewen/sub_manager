@@ -150,11 +150,39 @@ public class NodeParser {
                 if (params.containsKey("path")) {
                     node.setPath(params.get("path"));
                 }
+
+                // Security and TLS parameters
                 if (params.containsKey("security")) {
-                    node.setTls("tls".equals(params.get("security")));
+                    String securityValue = params.get("security");
+                    node.setSecurity(securityValue);
+                    // Set TLS flag based on security type
+                    node.setTls("tls".equals(securityValue) || "reality".equals(securityValue));
                 }
+
                 if (params.containsKey("sni")) {
                     node.setSni(params.get("sni"));
+                }
+
+                // Reality protocol specific parameters
+                if (params.containsKey("flow")) {
+                    node.setFlow(params.get("flow"));
+                }
+                if (params.containsKey("pbk")) {
+                    node.setPublicKey(params.get("pbk"));
+                }
+                if (params.containsKey("sid")) {
+                    node.setShortId(params.get("sid"));
+                }
+                if (params.containsKey("fp")) {
+                    node.setFingerprint(params.get("fp"));
+                }
+
+                // Other encryption parameters
+                if (params.containsKey("encryption")) {
+                    node.setCipher(params.get("encryption"));
+                }
+                if (params.containsKey("headerType")) {
+                    // Store in network settings if needed
                 }
             }
         } catch (Exception e) {
