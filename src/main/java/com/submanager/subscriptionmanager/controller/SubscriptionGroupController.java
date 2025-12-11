@@ -281,6 +281,13 @@ public class SubscriptionGroupController {
         existingNode.setPath(node.getPath());
         existingNode.setIsActive(node.getIsActive());
 
+        // Reality protocol fields
+        existingNode.setSecurity(node.getSecurity());
+        existingNode.setFlow(node.getFlow());
+        existingNode.setPublicKey(node.getPublicKey());
+        existingNode.setShortId(node.getShortId());
+        existingNode.setFingerprint(node.getFingerprint());
+
         subscriptionService.updateNode(id, existingNode);
 
         redirectAttributes.addFlashAttribute("success", "Node updated successfully");

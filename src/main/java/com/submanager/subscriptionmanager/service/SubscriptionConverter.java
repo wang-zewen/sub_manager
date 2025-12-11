@@ -309,16 +309,42 @@ public class SubscriptionConverter {
                     break;
             }
 
-            // TLS settings
-            Boolean tls = node.getTls();
-            if (tls != null && tls) {
-                proxy.put("tls", true);
-                if (node.getSni() != null && !node.getSni().isEmpty()) {
-                    proxy.put("servername", node.getSni());
-                } else if (node.getHost() != null && !node.getHost().isEmpty()) {
-                    proxy.put("servername", node.getHost());
+            // Security settings (TLS or Reality)
+            String security = node.getSecurity();
+            if (security != null && !security.isEmpty()) {
+                // Reality protocol
+                if ("reality".equals(security)) {
+                    proxy.put("tls", true);
+                    proxy.put("reality-opts", buildRealityOpts(node));
+                    if (node.getSni() != null && !node.getSni().isEmpty()) {
+                        proxy.put("servername", node.getSni());
+                    }
+                    // Add flow control if present
+                    if (node.getFlow() != null && !node.getFlow().isEmpty()) {
+                        proxy.put("flow", node.getFlow());
+                    }
+                } else if ("tls".equals(security)) {
+                    // Standard TLS
+                    proxy.put("tls", true);
+                    if (node.getSni() != null && !node.getSni().isEmpty()) {
+                        proxy.put("servername", node.getSni());
+                    } else if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        proxy.put("servername", node.getHost());
+                    }
+                    proxy.put("skip-cert-verify", false);
                 }
-                proxy.put("skip-cert-verify", false);
+            } else {
+                // Fallback: check TLS field
+                Boolean tls = node.getTls();
+                if (tls != null && tls) {
+                    proxy.put("tls", true);
+                    if (node.getSni() != null && !node.getSni().isEmpty()) {
+                        proxy.put("servername", node.getSni());
+                    } else if (node.getHost() != null && !node.getHost().isEmpty()) {
+                        proxy.put("servername", node.getHost());
+                    }
+                    proxy.put("skip-cert-verify", false);
+                }
             }
 
             return proxy;
@@ -326,6 +352,23 @@ public class SubscriptionConverter {
             System.err.println("Failed to parse VLESS to Clash: " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Build Reality options for Clash
+     */
+    private Map<String, Object> buildRealityOpts(ProxyNode node) {
+        Map<String, Object> realityOpts = new LinkedHashMap<>();
+
+        if (node.getPublicKey() != null && !node.getPublicKey().isEmpty()) {
+            realityOpts.put("public-key", node.getPublicKey());
+        }
+
+        if (node.getShortId() != null && !node.getShortId().isEmpty()) {
+            realityOpts.put("short-id", node.getShortId());
+        }
+
+        return realityOpts;
     }
 
     private Map<String, Object> parseTrojanToClash(ProxyNode node) {
